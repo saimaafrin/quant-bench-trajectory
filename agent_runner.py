@@ -51,6 +51,17 @@ def native_tools(tok) -> bool:
         return False
 
 
+def renders_tool_calls(tok) -> bool:
+    """Does the chat template show an assistant message's tool_calls? (Some, e.g. Hammer2.1's, drop them.)"""
+    msgs = [{"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "", "tool_calls": [{"type": "function", "function": {"name": "zz_probe_call", "arguments": {}}}]},
+            {"role": "tool", "name": "zz_probe_call", "content": "ok"}]
+    try:
+        return "zz_probe_call" in tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def run_episode(slot, bench, task: dict, opts: dict, emit, stop_flag, no_grad) -> dict:
     """Drive one agent through one task of `bench` (agent_benchmarks.Benchmark).
 
@@ -58,6 +69,7 @@ def run_episode(slot, bench, task: dict, opts: dict, emit, stop_flag, no_grad) -
     tok, model, device = slot.tok, slot.model, slot.device
     tools = bench.tools(task)
     native = native_tools(tok)
+    structured_history = native and renders_tool_calls(tok)
     max_steps = int(opts.get("max_steps") or bench.max_steps) if bench.executes else 1
     max_new = int(opts.get("max_new_tokens", 512))
     loop_guard = int(opts.get("loop_guard", LOOP_GUARD))   # 0 = off (pure benchmark behaviour)
@@ -100,7 +112,9 @@ def run_episode(slot, bench, task: dict, opts: dict, emit, stop_flag, no_grad) -
                     emit({"type": "step", **step})
                     messages.append({"role": "assistant", "content": text})
                     break
-                if native:
+                # Keep the model's own words in the history: use structured tool_calls only when the
+                # template renders them and the model wrote them in the template's own format.
+                if structured_history and parsed["format"] == "tool_call tag":
                     messages.append({"role": "assistant", "content": parsed["content"],
                                      "tool_calls": [{"type": "function", "function": {"name": c["name"], "arguments": c["arguments"]}}
                                                     for c in parsed["calls"]]})
@@ -152,7 +166,7 @@ def run_episode(slot, bench, task: dict, opts: dict, emit, stop_flag, no_grad) -
     turn_info = [{"turn": t["turn"], "end": t["end"], "n_results": len(t["results"])} for t in turns]
     flags = detect(steps, turn_info, grade)
     return {
-        "benchmark": bench.key, "native_tools": native, "steps": steps, "grade": grade, "stopped": stopped_reason,
+        "benchmark": bench.key, "native_tools": native, "structured_history": structured_history, "steps": steps, "grade": grade, "stopped": stopped_reason,
         "turns": turn_info, "flags": flags, "failure": classify(grade, steps, turn_info, stopped_reason),
         "actions": action_string(steps), "loop_guard": loop_guard,
         "final_state": agent_bench.to_jsonable(env.snapshot()) if bench.executes else None,

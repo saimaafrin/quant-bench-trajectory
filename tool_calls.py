@@ -37,14 +37,24 @@ def parse(text: str) -> dict:
                 errors.append(err)
         return {"calls": calls, "format": "tool_call tag", "content": TOOL_BLOCK.sub("", text).strip(), "errors": errors}
 
-    for body, fmt in [(m, "fenced block") for m in FENCE.findall(text)] + [(text, "bare JSON")]:
+    # Some models write one fenced block per call ("```[...]``` ```[...]```"): collect them all.
+    fenced = []
+    for body in FENCE.findall(text):
         stripped = body.strip()
         if stripped[:1] in "[{":
             got, err = _from_json(stripped)
-            if got:
-                return {"calls": got, "format": fmt, "content": "" if fmt == "bare JSON" else FENCE.sub("", text).strip(), "errors": []}
-            if err and fmt == "bare JSON" and '"name"' in stripped:
+            fenced += got
+            if err and '"name"' in stripped.replace("'", '"'):
                 errors.append(err)
+    if fenced:
+        return {"calls": fenced, "format": "fenced block", "content": FENCE.sub("", text).strip(), "errors": errors}
+    stripped = text.strip()
+    if stripped[:1] in "[{":
+        got, err = _from_json(stripped)
+        if got:
+            return {"calls": got, "format": "bare JSON", "content": "", "errors": []}
+        if err and '"name"' in stripped:
+            errors.append(err)
 
     got = _from_python(text.strip())   # BFCL default style: [mv(source='a'), cd(folder='b')]
     if got:
