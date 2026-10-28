@@ -91,11 +91,14 @@ browser ──▶ Vercel (static site, deploy/quantbench) ──▶ Supabase (lo
   1. Create a Supabase project and run `deploy/supabase.sql` in its SQL editor.
   2. In **Authentication → URL Configuration**, set the Site URL and add the Vercel URL to the
      redirect URLs.
-  3. Build and deploy:
+  3. Sign-in is with GitHub (no passwords). Create a GitHub OAuth App (GitHub → Settings →
+     Developer settings → OAuth Apps) with callback URL `https://<project>.supabase.co/auth/v1/callback`,
+     then paste its Client ID and secret into **Authentication → Sign In / Providers → GitHub**.
+  4. Build and deploy:
      `python deploy/build_site.py --supabase-url … --supabase-anon-key … --site https://<site>`,
      then `npx vercel deploy deploy/quantbench --prod --scope <team>`.
 - **Access:** only emails in `public.allowed_emails` can use the site. Add `'*'` to that table to
-  allow anyone who signs up. Users can delete only their own runs.
+  allow anyone who signs in. The check uses the email address GitHub reports. Users can delete only their own runs.
 - **Connecting a backend:** the connect card has two tabs.
   - **Google Colab:** a two-line cell downloads the backend from the site, starts it with a
     random key, opens a tunnel, and prints an **Open QuantBench** link that carries the backend

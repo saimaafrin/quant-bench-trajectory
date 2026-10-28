@@ -192,9 +192,8 @@ tr.expanded td { background: var(--panel-2); }
 <section class="card auth" id="auth-screen" hidden>
   <h1>QuantBench Live</h1>
   <div class="muted" style="font-size:13px">Compare full-precision and quantized code LLMs side by side. Sign in to continue.</div>
-  <label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="email">
-  <label for="auth-pass">Password</label><input id="auth-pass" type="password" autocomplete="current-password">
-  <div class="btns"><button class="primary" id="auth-signin">Sign in</button><button id="auth-signup">Create account</button><button id="auth-magic">Email me a sign-in link</button></div>
+  <div class="btns"><button class="primary" id="auth-github">Sign in with GitHub</button></div>
+  <div class="muted" style="font-size:12px">No password: GitHub confirms who you are and shares your email address with this site.</div>
   <div id="auth-msg" class="muted"></div>
 </section>
 <main id="app">
@@ -1475,18 +1474,10 @@ function loadScript(src) {
 
 function authMsg(text, isError) { const el = $("#auth-msg"); el.textContent = text; el.style.color = isError ? "var(--bad)" : "var(--muted)"; }
 
-async function authAction(kind) {
-  const email = $("#auth-email").value.trim(), password = $("#auth-pass").value;
-  if (!email) return authMsg("Enter your email", true);
-  authMsg("…");
-  let res;
-  if (kind === "magic") res = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
-  else if (!password) return authMsg("Enter a password (or use the email link)", true);
-  else if (kind === "signup") res = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
-  else res = await sb.auth.signInWithPassword({ email, password });
-  if (res.error) return authMsg(res.error.message, true);
-  if (kind === "magic") return authMsg("Check your inbox (and spam folder) for a sign-in link. Open it in this same browser; it works once, for one hour.");
-  if (kind === "signup" && !res.data.session) return authMsg("Account created. Confirm it from the email we sent, then sign in.");
+async function signInGithub() {
+  authMsg("Opening GitHub…");
+  const { error } = await sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: location.origin + location.pathname } });
+  if (error) authMsg(error.message, true);
 }
 
 async function onSignedIn(user) {
@@ -1495,12 +1486,12 @@ async function onSignedIn(user) {
   const { data: allowed, error } = await sb.rpc("is_allowed");
   if (error || !allowed) {
     $("#app").hidden = true; $("#auth-screen").hidden = false;
-    authMsg(error ? "Could not check access: " + error.message : `Signed in as ${user.email}, but this account has not been approved yet. Ask the site owner to add it.`, true);
+    authMsg(error ? "Could not check access: " + error.message : `Signed in as ${user.email || user.user_metadata?.user_name}, but this account has not been approved yet. Ask the site owner to add it.`, true);
     me = null;
     return;
   }
   $("#auth-screen").hidden = true; $("#app").hidden = false;
-  $("#userbar").hidden = false; $("#user-email").textContent = user.email;
+  $("#userbar").hidden = false; $("#user-email").textContent = user.email || user.user_metadata?.user_name || "";
   $("#history-filter").insertAdjacentHTML("beforeend", `<option value="mine">My runs</option>`);
   loadHistory();
   const saved = savedBackend();
@@ -1509,16 +1500,14 @@ async function onSignedIn(user) {
 }
 
 
-// A sign-in link that failed (expired, already used, or not allowed) comes back as
+// A sign-in that failed (cancelled on GitHub, no verified email, not allowed) comes back as
 // #error=...&error_description=... ; show that instead of a silent sign-in screen.
 function linkError() {
   const p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
   const msg = p.get("error_description") || p.get("error");
   if (!msg) return null;
   history.replaceState(null, "", location.pathname);
-  const code = p.get("error_code") || "";
-  return code === "otp_expired" ? "That sign-in link has expired or was already used. Request a new one (links work once, for one hour)."
-    : `Sign-in link failed: ${msg.replace(/\+/g, " ")}`;
+  return `Sign-in failed: ${msg.replace(/\+/g, " ")}`;
 }
 
 async function initHosted() {
@@ -1542,10 +1531,7 @@ async function initHosted() {
   $("#conn-off").onclick = disconnectBackend;
   await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js");
   sb = window.supabase.createClient(QB.supabaseUrl, QB.supabaseAnonKey);
-  $("#auth-signin").onclick = () => authAction("signin");
-  $("#auth-signup").onclick = () => authAction("signup");
-  $("#auth-magic").onclick = () => authAction("magic");
-  $("#auth-pass").addEventListener("keydown", e => { if (e.key === "Enter") authAction("signin"); });
+  $("#auth-github").onclick = signInGithub;
   $("#sign-out").onclick = async () => { await sb.auth.signOut(); location.reload(); };
   sb.auth.onAuthStateChange((_event, session) => { if (session?.user) setTimeout(() => onSignedIn(session.user)); });
   const { data } = await sb.auth.getSession();
