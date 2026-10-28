@@ -71,6 +71,9 @@ LIMITS = {"max_download_bytes": None}  # set from --max-download-gb
 DOWNLOAD_LOCK = threading.Lock()  # concurrent hub downloads in one process race (tqdm, shared blobs)
 disable_progress_bars()  # the UI shows its own progress
 
+import transformers as _transformers
+
+VERSIONS = {"torch": torch.__version__, "transformers": _transformers.__version__, "python": platform.python_version()}
 HAS_CUDA = torch.cuda.is_available()
 HAS_MPS = not HAS_CUDA and torch.backends.mps.is_available()   # Apple Silicon GPU
 SMALL_MODEL = "Qwen/Qwen2.5-Coder-0.5B-Instruct"   # default without an NVIDIA GPU
@@ -246,9 +249,14 @@ class Slot:
             if precision == "quanto-int4" and device == "cpu":
                 self.add_log("The first INT4 load on a CPU compiles quanto's kernels (a minute or two; needs a C++ compiler)")
             t = time.perf_counter()
-            model = AutoModelForCausalLM.from_pretrained(
-                local, device_map={"": device}, low_cpu_mem_usage=True, **self._quant_kwargs(precision, device)
-            ).eval()
+            kwargs = dict(device_map={"": device}, low_cpu_mem_usage=True, **self._quant_kwargs(precision, device))
+            try:
+                # Explicit SDPA attention: with recent transformers the "eager" path overflows in FP16 and
+                # Qwen2.5-family models then emit NaN logits ("!!!!" or multilingual garbage).
+                model = AutoModelForCausalLM.from_pretrained(local, attn_implementation="sdpa", **kwargs).eval()
+            except (ValueError, ImportError) as e:   # architecture without SDPA support
+                self.add_log(f"SDPA attention unavailable ({e}); using the model's default")
+                model = AutoModelForCausalLM.from_pretrained(local, **kwargs).eval()
             load_s = time.perf_counter() - t
             self.add_log(f"Weights loaded in {load_s:.1f}s")
 
@@ -259,6 +267,11 @@ class Slot:
                 model.generate(**ids, max_new_tokens=8, do_sample=False,
                                pad_token_id=pad_id(tok))
 
+            with no_grad(precision):   # numeric sanity check: FP16 overflow shows up as NaN logits
+                finite = bool(torch.isfinite(model(**ids).logits[0, -1]).all())
+            if not finite:
+                self.add_log("WARNING: this model produces NaN outputs at this precision on this machine "
+                             "(FP16 overflow); expect garbage text. Try BF16, FP32 or a 4/8-bit option.")
             self.model, self.tok = model, tok
             self.info = {
                 "load_s": round(load_s, 2),
@@ -268,6 +281,8 @@ class Slot:
                 "disk": self.dl_total,
                 "quant": self._describe_quant(model, precision),
                 "dtype": str(next(model.parameters()).dtype).replace("torch.", ""),
+                "attn": getattr(model.config, "_attn_implementation", None), "finite": finite,
+                "versions": VERSIONS,
             }
             self.stage = "ready"
             self.state = "ready"
@@ -566,7 +581,7 @@ def create_app(args) -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"ok": True, "app": "quantbench", "version": 2, "gpus": gpu_list(), "accelerator": accelerator(),
+        return {"ok": True, "app": "quantbench", "version": 2, "gpus": gpu_list(), "accelerator": accelerator(), "versions": VERSIONS,
                 "platform": platform.system(), "key_required": bool(args.auth_key)}
 
     @app.get("/api/config")
