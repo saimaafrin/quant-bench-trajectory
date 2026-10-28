@@ -1,0 +1,1565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuantBench Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root {
+  --bg: #0d1117; --panel: #151b23; --panel-2: #1c2430; --border: #2a3441; --text: #e6edf3;
+  --muted: #8b98a8; --faint: #5b6776;
+  --a: #4f8cff; --b: #f2a33a;
+  --ok: #3fb950; --ok-soft: rgba(63,185,80,.14); --warn: #d29922; --warn-soft: rgba(210,153,34,.15);
+  --bad: #f85149; --bad-soft: rgba(248,81,73,.14);
+  --radius: 12px;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 Inter, system-ui, sans-serif; }
+main { max-width: 1440px; margin: 0 auto; padding: 20px 16px 60px; }
+h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 28px 0 10px; font-weight: 600; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+header .sub { color: var(--muted); font-size: 13px; }
+nav.pages { display: flex; gap: 6px; margin-top: 6px; }
+nav.pages a { font-size: 12px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--border); color: var(--muted); text-decoration: none; }
+nav.pages a.on { color: var(--text); border-color: #58a6ff; }
+.gpus { display: flex; gap: 8px; flex-wrap: wrap; }
+.gpu { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 12px; min-width: 150px; }
+.gpu .bar { margin-top: 4px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; min-width: 0; }
+.card.a { border-top: 3px solid var(--a); } .card.b { border-top: 3px solid var(--b); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.tag { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
+.tag .dot { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; color: #0d1117; font-weight: 700; flex: none; }
+.a .dot { background: var(--a); } .b .dot { background: var(--b); }
+.pill { font-size: 11px; padding: 2px 9px; border-radius: 99px; background: var(--panel-2); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+.pill.ready, .pill.done { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+.pill.loading, .pill.generating { color: #79c0ff; background: rgba(121,192,255,.12); border-color: transparent; }
+.pill.error { color: var(--bad); background: var(--bad-soft); border-color: transparent; }
+.fields { display: grid; grid-template-columns: 1fr 190px 100px; gap: 8px; }
+@media (max-width: 560px) { .fields { grid-template-columns: 1fr 1fr; } .fields .repo { grid-column: 1 / -1; } }
+.fields .custom { grid-column: 1 / -1; }
+label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+input, select, textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; min-width: 0; }
+select option:disabled { color: var(--faint); }
+textarea { font-family: var(--mono); font-size: 13px; resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #58a6ff; }
+.estimate { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.estimate.over { color: var(--bad); }
+.btns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+button { font: inherit; font-weight: 600; border-radius: 8px; padding: 8px 16px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; white-space: nowrap; }
+button:hover:not(:disabled) { border-color: #58a6ff; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary { background: #238636; border-color: #2ea043; color: #fff; }
+button.primary:hover:not(:disabled) { background: #2ea043; }
+button.small { padding: 5px 10px; font-size: 12px; }
+.steps { display: flex; gap: 6px; margin: 14px 0 10px; flex-wrap: wrap; }
+.step { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: var(--panel-2); color: var(--faint); border: 1px solid var(--border); }
+.step.active { color: #79c0ff; border-color: #388bfd; animation: pulse 1.2s ease-in-out infinite; }
+.step.done { color: var(--ok); border-color: transparent; background: var(--ok-soft); }
+@keyframes pulse { 50% { opacity: .55; } }
+.meter { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.meter .row { display: flex; justify-content: space-between; margin-bottom: 3px; gap: 8px; }
+.bar { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+.bar > i { display: block; height: 100%; width: 0; background: var(--muted); transition: width .4s ease; }
+.a .bar > i { background: var(--a); } .b .bar > i { background: var(--b); }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+@media (max-width: 560px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat { background: var(--panel-2); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.stat .k { font-size: 11px; color: var(--muted); }
+.stat .v { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+details.log { margin-top: 10px; }
+details summary { font-size: 12px; color: var(--muted); cursor: pointer; }
+details.log pre { font-family: var(--mono); font-size: 11px; color: var(--muted); max-height: 140px; overflow: auto; background: var(--bg); padding: 8px; border-radius: 8px; margin: 6px 0 0; white-space: pre-wrap; }
+.err { color: var(--bad); font-size: 12px; margin-top: 8px; word-break: break-word; }
+.task-row { display: grid; grid-template-columns: 260px 1fr auto; gap: 8px; align-items: end; }
+.prompt-row { display: grid; grid-template-columns: 110px 110px 210px 1fr; gap: 8px; align-items: end; margin-top: 10px; }
+.prompt-row .actions { display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 900px) {
+  .task-row { grid-template-columns: 1fr auto; } .task-row .src { grid-column: 1 / -1; }
+  .prompt-row { grid-template-columns: 1fr 1fr; } .prompt-row .actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+#prompt { margin-top: 10px; min-height: 110px; font-family: Inter, system-ui, sans-serif; font-size: 14px; }
+details.adv { margin-top: 10px; }
+details.adv .inner { display: grid; gap: 8px; margin-top: 8px; }
+pre.code-view { font-family: var(--mono); font-size: 11.5px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; max-height: 260px; overflow: auto; margin: 0; white-space: pre; }
+.batch-bar { margin-top: 12px; padding: 12px; border: 1px dashed var(--border); border-radius: 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.batch-bar input { width: 80px; padding: 5px 8px; }
+.out-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.live { display: flex; gap: 14px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.live b { color: var(--text); font-weight: 600; }
+.output { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; height: 420px; overflow: auto; font-size: 13px; word-wrap: break-word; }
+.output pre { margin: 8px 0; background: transparent; }
+.output pre code.hljs { padding: 0; background: transparent; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; white-space: pre; }
+.output code.inline { font-family: var(--mono); background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+.output .placeholder { color: var(--faint); }
+.cursor::after { content: "▍"; color: var(--muted); animation: pulse .9s infinite; }
+.row-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; }
+.tests, .quality { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; min-height: 24px; }
+.t { font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 6px; cursor: help; }
+.t.ok { background: var(--ok-soft); color: var(--ok); } .t.bad { background: var(--bad-soft); color: var(--bad); }
+.score { font-weight: 700; margin-right: 4px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--panel-2); color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip b { font-weight: 600; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); } .chip.warn { background: var(--warn-soft); color: var(--warn); } .chip.bad { background: var(--bad-soft); color: var(--bad); }
+details.issues { width: 100%; }
+details.issues ul { margin: 6px 0 0; padding: 8px 10px 8px 26px; background: var(--bg); border-radius: 8px; max-height: 180px; overflow: auto; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+details.issues li b { color: var(--text); font-weight: 600; }
+.kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+@media (max-width: 1200px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 600px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+.kpi { min-width: 0; }
+.kpi .k { font-size: 12px; color: var(--muted); }
+.kpi .v { font-size: 24px; font-weight: 700; margin: 2px 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kpi .d { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ca { color: var(--a); } .cb { color: var(--b); }
+.chart-card { margin-top: 16px; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; background: currentColor; }
+canvas { width: 100%; height: 240px; display: block; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; }
+td.pass { color: var(--ok); } td.fail { color: var(--bad); }
+.table-wrap { overflow-x: auto; }
+.batch-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .batch-summary { grid-template-columns: 1fr; } }
+.progress-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; gap: 8px; flex-wrap: wrap; }
+.big-bar { height: 10px; }
+.big-bar > i { background: #388bfd; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td, tr.clickable:focus td { background: var(--panel-2); }
+tr.clickable:focus { outline: none; }
+td .pass, td.pass { color: var(--ok); } td .fail, td.fail { color: var(--bad); }
+dialog#run-dialog { width: min(1400px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 20px; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: auto; }
+dialog#run-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.rd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.rd-head .sub { color: var(--muted); font-size: 13px; }
+.muted { color: var(--muted); }
+.better { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.rep-section { margin-top: 12px; }
+.rep-section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+.sum-table td:first-child { white-space: normal; }
+.sum-table tr.grp td { color: var(--text); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding-top: 14px; }
+.outcomes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 800px) { .outcomes { grid-template-columns: repeat(2, 1fr); } }
+.outcome { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; text-align: left; font-weight: 400; }
+.outcome .n { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.outcome .l { font-size: 12px; color: var(--muted); }
+.outcome.active { border-color: #58a6ff; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+.chipbtn { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; font-weight: 500; }
+.chipbtn.active { color: var(--text); border-color: #58a6ff; }
+.issue-table td.desc { white-space: normal; min-width: 220px; color: var(--muted); }
+.issue-table tr.active td { background: rgba(56,139,253,.12); }
+tr.expand > td { background: var(--bg); padding: 12px; white-space: normal; }
+tr.expanded td { background: var(--panel-2); }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.toolbar select, .toolbar input { width: auto; padding: 6px 10px; }
+.userbar { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+.auth { max-width: 440px; margin: 10vh auto 0; }
+.auth h1 { margin-bottom: 4px; }
+.auth label { margin-top: 12px; }
+#auth-msg { margin-top: 12px; font-size: 13px; min-height: 18px; }
+#connect { margin-top: 20px; }
+#connect ol { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+#connect ol b, #connect ol a { color: var(--text); }
+.snippet { position: relative; margin: 6px 0; }
+.snippet pre { white-space: pre-wrap; word-break: break-all; padding-right: 70px; }
+.snippet button { position: absolute; top: 6px; right: 6px; }
+.conn-tabs { display: flex; gap: 6px; margin: 10px 0 2px; flex-wrap: wrap; }
+.conn-tabs button[aria-selected="true"] { background: var(--panel-2); color: var(--text); border-color: #58a6ff; }
+.conn-note { color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.6; }
+.conn-note code, #connect ol code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; color: var(--text); }
+.os-label { font-size: 11px; color: var(--muted); margin-top: 8px; }
+.conn-row { display: grid; grid-template-columns: 1fr 260px auto auto; gap: 8px; margin-top: 12px; }
+@media (max-width: 800px) { .conn-row { grid-template-columns: 1fr; } }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bad); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<section class="card auth" id="auth-screen" hidden>
+  <h1>QuantBench Live</h1>
+  <div class="muted" style="font-size:13px">Compare full-precision and quantized code LLMs side by side. Sign in to continue.</div>
+  <label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="email">
+  <label for="auth-pass">Password</label><input id="auth-pass" type="password" autocomplete="current-password">
+  <div class="btns"><button class="primary" id="auth-signin">Sign in</button><button id="auth-signup">Create account</button><button id="auth-magic">Email me a sign-in link</button></div>
+  <div id="auth-msg" class="muted"></div>
+</section>
+<main id="app">
+  <header>
+    <div>
+      <h1>QuantBench Live</h1>
+      <div class="sub">Full-precision vs quantized LLM: the same coding task, generated, tested and linted side by side.</div>
+      <nav class="pages"><a href="./" class="on">Code generation</a><a href="agent">Tool-calling agents</a></nav>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div class="gpus" id="gpus"></div>
+      <div class="userbar" id="userbar" hidden><span id="user-email"></span><button class="small" id="sign-out">Sign out</button></div>
+    </div>
+  </header>
+
+  <section class="card" id="connect" hidden>
+    <div class="card-head"><div class="tag">Where your models run</div><span class="pill" id="conn-pill">not connected</span></div>
+    <div class="muted" id="conn-info" style="font-size:13px">Models run on hardware you provide: a free Google Colab GPU or your own computer, so everyone can work at the same time. Run history is shared and stays here after your session ends.</div>
+    <details id="conn-help" open style="margin-top:10px"><summary>Choose where models run</summary>
+      <div class="conn-tabs" role="tablist">
+        <button class="small" role="tab" data-where="colab" aria-selected="true">Google Colab (free GPU)</button>
+        <button class="small" role="tab" data-where="own" aria-selected="false">My own computer</button>
+      </div>
+      <div data-pane="colab">
+        <ol>
+          <li>Open a <a href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener">new Colab notebook</a> and choose <b>Runtime → Change runtime type → T4 GPU</b> (or any GPU you have).</li>
+          <li>Paste this into a cell and run it (about 2 minutes):
+            <div class="snippet"><pre class="code-view" data-snippet="colab"></pre><button class="small" data-copy="colab">Copy</button></div></li>
+          <li>Click the <b>Open QuantBench</b> link it prints. This page then connects to your Colab automatically.</li>
+        </ol>
+        <div class="conn-note">You can also download the <a href="QuantBench_Colab.ipynb" download style="color:#58a6ff">ready-made notebook</a>.
+          Free Colab has 16 GB of GPU memory: enough for about 3B models in FP16 next to their 4-bit version, or 7B in 8-bit or 4-bit.</div>
+      </div>
+      <div data-pane="own" hidden>
+        <ol>
+          <li>You need <b>Python 3.10 or newer</b>. Using a fresh virtual environment is best, because missing packages (PyTorch, transformers, the linters) are installed into it.</li>
+          <li>In a terminal, run:
+            <div class="os-label">macOS / Linux</div>
+            <div class="snippet"><pre class="code-view" data-snippet="unix"></pre><button class="small" data-copy="unix">Copy</button></div>
+            <div class="os-label">Windows (PowerShell)</div>
+            <div class="snippet"><pre class="code-view" data-snippet="windows"></pre><button class="small" data-copy="windows">Copy</button></div></li>
+          <li>Your browser opens QuantBench served from your computer (<code>http://127.0.0.1:8765</code>), already connected. Sign in there with this same account; runs go to the same shared history. Keep the terminal open; press <b>Ctrl+C</b> there to stop.</li>
+        </ol>
+        <div class="conn-note">
+          <b>What runs where:</b> with an NVIDIA GPU you get full speed and every quantization method (bitsandbytes 8-bit and 4-bit).
+          On a Mac with Apple Silicon or a laptop without a GPU, use small models (0.5B to 1.5B) with <b>optimum-quanto INT8 / INT4</b> instead; bitsandbytes needs an NVIDIA GPU.<br>
+          <b>Windows with an NVIDIA GPU:</b> install the CUDA build of PyTorch first (<a href="https://pytorch.org/get-started/locally/" target="_blank" rel="noopener" style="color:#58a6ff">pytorch.org</a>); the default Windows build uses the CPU only.<br>
+          <b>A remote GPU server</b> (for example a lab machine over SSH): leave out <code>--local</code>. It then opens a temporary public tunnel and prints a link you can open from any browser.
+        </div>
+      </div>
+    </details>
+    <div class="conn-row">
+      <input id="conn-url" placeholder="Backend URL, e.g. https://xxxx.trycloudflare.com" spellcheck="false">
+      <input id="conn-key" placeholder="Backend key" spellcheck="false">
+      <button class="primary" id="conn-go">Connect</button><button id="conn-off">Disconnect</button>
+    </div>
+  </section>
+
+  <div id="live">
+  <h2>1 · Load models</h2>
+  <section class="grid2" id="model-cards"></section>
+
+  <h2>2 · Coding task</h2>
+  <section class="card">
+    <div class="task-row">
+      <div class="src"><label for="source">Source</label><select id="source"></select></div>
+      <div><label for="problem">Problem</label><select id="problem"></select></div>
+      <div><label>&nbsp;</label><button id="random" title="Pick a random problem">Random</button></div>
+    </div>
+    <textarea id="prompt" spellcheck="false" placeholder="Describe a coding task…"></textarea>
+    <div class="prompt-row">
+      <div><label for="max-tokens">Max new tokens</label><input id="max-tokens" type="number" min="16" max="4096" value="512"></div>
+      <div><label for="temperature">Temperature</label><input id="temperature" type="number" min="0" max="2" step="0.1" value="0"></div>
+      <div><label for="mode">Run mode</label>
+        <select id="mode" title="Parallel runs both models at once in one Python process, so they compete for CPU and both report lower tok/s. Use Sequential for accurate speed numbers.">
+          <option value="sequential">Sequential (accurate)</option><option value="parallel">Parallel race</option></select></div>
+      <div class="actions">
+        <button class="primary" id="go">Generate ▶</button>
+        <button id="stop" disabled>Stop</button>
+      </div>
+    </div>
+    <details class="adv">
+      <summary>System prompt &amp; tests</summary>
+      <div class="inner">
+        <div><label for="system">System prompt (empty = the model's default)</label><textarea id="system" rows="2"></textarea></div>
+        <div id="tests-builtin"><label for="tests">Unit tests, one Python statement per line. They run against each model's code block after generation; leave empty to skip grading.</label>
+          <textarea id="tests" rows="5" spellcheck="false"></textarea></div>
+        <div id="tests-bench" hidden><label id="bench-test-label">Official test harness (read only)</label><pre class="code-view" id="bench-test"></pre></div>
+      </div>
+    </details>
+    <div class="batch-bar" id="batch-bar" hidden>
+      <b style="color:var(--text)">Batch evaluation</b>
+      run <input id="batch-n" type="number" min="1" value="10"> problems starting at #<input id="batch-start" type="number" min="0" value="0">
+      <button class="primary small" id="batch-go">Run batch</button>
+      <span>Each problem runs on both models, then gets tested and linted. Results go to the <a href="#batch" style="color:#58a6ff">batch report</a>.</span>
+    </div>
+  </section>
+
+  <h2>3 · Live outputs</h2>
+  <section class="grid2" id="out-cards"></section>
+
+  <h2>4 · Comparison</h2>
+  <section class="card"><div class="kpis" id="kpis"></div></section>
+  <section class="card chart-card">
+    <div class="card-head"><div class="tag">Tokens generated over time</div>
+      <div class="legend"><span style="color:var(--a)" id="lg-a">A</span><span style="color:var(--b)" id="lg-b">B</span></div></div>
+    <canvas id="chart"></canvas>
+  </section>
+
+  <div id="batch" hidden>
+    <h2>Benchmark batch report</h2>
+    <section class="card">
+      <div class="progress-row"><span id="batch-title"></span><span id="batch-progress"></span></div>
+      <div class="bar big-bar"><i id="batch-bar-fill"></i></div>
+      <div class="batch-summary" style="margin-top:16px">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Metric (mean over problems)</th><th class="ca" id="bh-a">A</th><th class="cb" id="bh-b">B</th></tr></thead>
+          <tbody id="batch-agg"></tbody></table></div>
+        <div>
+          <div class="btns" style="margin-top:0"><button class="small" id="export-csv">Export CSV</button><button class="small" id="export-json">Export JSON</button></div>
+          <p style="color:var(--muted);font-size:12px;margin:10px 0 0">pass@1 uses greedy decoding when temperature is 0. Grading uses each benchmark's own tests, run in a local subprocess. This is not the official evaluation sandbox, so tasks that need network access or unusual system libraries may fail for both models.</p>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:16px"><table>
+        <thead><tr><th>Task</th><th>A pass</th><th>B pass</th><th>A tests</th><th>B tests</th><th>A tok/s</th><th>B tok/s</th><th>A pylint</th><th>B pylint</th><th>A ruff</th><th>B ruff</th><th>Similarity</th></tr></thead>
+        <tbody id="batch-rows"></tbody></table></div>
+    </section>
+  </div>
+
+  </div>
+
+  <h2>Run history</h2>
+  <section class="card">
+    <div class="card-head">
+      <div class="tag" style="font-weight:500;color:var(--muted)"><span id="history-count"></span><span style="color:var(--faint)">· a batch is one run, a single Generate is a run of one problem · click a run to open its report</span></div>
+      <div class="btns" style="margin:0"><select id="history-filter" style="width:auto">
+        <option value="">All runs</option><option value="batch">Batches</option><option value="single">Single runs</option></select>
+        <button class="small" id="history-csv">Export CSV</button></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>When</th><th>Run</th><th>Problems</th><th>Model A</th><th>Model B</th><th>A pass@1</th><th>B pass@1</th>
+        <th>A pylint</th><th>B pylint</th><th>A ruff / problem</th><th>B ruff / problem</th><th>A tok/s</th><th>B tok/s</th></tr></thead>
+      <tbody id="history"><tr><td colspan="13" style="color:var(--faint)">Loading…</td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+<dialog id="run-dialog"><div id="rd-body"></div></dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const SLOTS = ["a", "b"];
+const ROLE = { a: "Baseline", b: "Quantized" };
+const BYTES_PER_PARAM = { fp32: 4, fp16: 2, bf16: 2, "bnb-8bit": 1.15, "bnb-4bit": 0.7, "quanto-int8": 1.15, "quanto-int4": 0.7, prequantized: 0.7 };
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const gb = b => b == null ? "–" : (b / 1e9).toFixed(b >= 1e10 ? 1 : 2) + " GB";
+const fmt = (x, d = 1) => x == null || Number.isNaN(x) ? "–" : Number(x).toFixed(d);
+const mean = xs => { const v = xs.filter(x => x != null && !Number.isNaN(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+
+const QB = window.QB_CONFIG || { mode: "local" };
+const HOSTED = QB.mode === "hosted";          // on Vercel: Supabase login + history, user-provided GPU backend
+let BACKEND = HOSTED ? null : { url: "", key: "" };
+let sb = null, me = null;                     // Supabase client and signed-in user (hosted only)
+let CONFIG, STATUS = { slots: {}, gpus: [] };
+const out = {};                 // per-slot state of the current generation
+let running = false, runCtx = null;
+let task = null;                // current task: {source, index, title, problem?}
+let batch = null;
+const listings = {};            // benchmark name -> [{index, task_id, title}]
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 6000);
+}
+
+async function api(path, body, method) {
+  if (!BACKEND) throw new Error("No GPU backend connected");
+  const opts = method ? { method } : body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  if (BACKEND.key) opts.headers = { ...(opts.headers || {}), "X-QB-Key": BACKEND.key };
+  const r = await fetch(BACKEND.url + path, opts);
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch {} throw new Error(m); }
+  return r;
+}
+const getJson = async (path, body) => (await api(path, body)).json();
+const F = (root, f) => root.querySelector(`[data-f="${f}"]`);
+
+// ------------------------------------------------------------ model cards
+function modelOptions() {
+  const groups = {};
+  CONFIG.models.forEach(m => (groups[m.group] = groups[m.group] || []).push(m));
+  return Object.entries(groups).map(([g, ms]) => `<optgroup label="${esc(g)}">${ms.map(m =>
+    `<option value="${esc(m.repo)}" ${m.available ? "" : "disabled"}>${esc(m.repo.split("/").pop())} · ${m.params}B${m.available ? "" : " (needs " + esc(m.requires) + ")"}</option>`).join("")}</optgroup>`).join("")
+    + `<optgroup label="Other"><option value="__custom__">Custom repo or local path…</option></optgroup>`;
+}
+
+function modelCard(s) {
+  const bad = CONFIG.precision_problems || {};
+  const prec = Object.entries(CONFIG.precisions).map(([k, v]) =>
+    `<option value="${k}" ${bad[k] ? "disabled" : ""}>${esc(v)}${bad[k] ? " (" + esc(bad[k]) + ")" : ""}</option>`).join("");
+  const dev = CONFIG.devices.map(d => `<option>${d}</option>`).join("");
+  return `<div class="card ${s}" id="m-${s}">
+    <div class="card-head"><div class="tag"><span class="dot">${s.toUpperCase()}</span>${ROLE[s]}</div><span class="pill" data-f="pill">empty</span></div>
+    <div class="fields">
+      <div class="repo"><label>Model</label><select data-f="model">${modelOptions()}</select></div>
+      <div><label>Precision</label><select data-f="precision">${prec}</select></div>
+      <div><label>Device</label><select data-f="device">${dev}</select></div>
+      <div class="custom" data-f="custom-wrap" hidden><label>Hugging Face repo id or local path</label><input data-f="custom" spellcheck="false" placeholder="org/model-name"></div>
+    </div>
+    <div class="estimate" data-f="est"></div>
+    <div class="btns"><button class="primary" data-f="load">Load model</button><button data-f="unload">Unload</button></div>
+    <div class="steps">${[["download", "Download"], ["tokenizer", "Tokenizer"], ["weights", "Weights → device"], ["warmup", "Warm-up"]].map(([k, l]) => `<span class="step" data-step="${k}">${l}</span>`).join("")}</div>
+    <div class="meter"><div class="row"><span>Download</span><span data-f="dl">–</span></div><div class="bar"><i data-f="dlbar"></i></div></div>
+    <div class="meter"><div class="row"><span>GPU memory held by this model</span><span data-f="mem">–</span></div><div class="bar"><i data-f="membar"></i></div></div>
+    <div class="stats">
+      <div class="stat"><div class="k">Weights footprint</div><div class="v" data-f="fp">–</div></div>
+      <div class="stat"><div class="k">Load time</div><div class="v" data-f="lt">–</div></div>
+      <div class="stat"><div class="k">On disk</div><div class="v" data-f="disk">–</div></div>
+      <div class="stat"><div class="k">Format</div><div class="v" data-f="q" style="font-size:13px">–</div></div>
+    </div>
+    <div class="err" data-f="err"></div>
+    <details class="log"><summary>Load log</summary><pre data-f="log"></pre></details>
+  </div>`;
+}
+
+function chosenRepo(s) {
+  const root = $(`#m-${s}`), sel = F(root, "model").value;
+  return sel === "__custom__" ? F(root, "custom").value.trim() : sel;
+}
+
+function onModelChange(s) {
+  const root = $(`#m-${s}`), sel = F(root, "model").value;
+  F(root, "custom-wrap").hidden = sel !== "__custom__";
+  const m = CONFIG.models.find(x => x.repo === sel), prec = F(root, "precision");
+  if (m && m.prequantized) prec.value = "prequantized";
+  else if (prec.value === "prequantized") prec.value = STATUS.slots[s].defaults.precision === "prequantized" ? "bnb-4bit" : STATUS.slots[s].defaults.precision;
+  updateEstimate(s);
+}
+
+function updateEstimate(s) {
+  const root = $(`#m-${s}`), m = CONFIG.models.find(x => x.repo === chosenRepo(s)), el = F(root, "est");
+  if (!m) { el.textContent = ""; el.className = "estimate"; return; }
+  const prec = F(root, "precision").value, est = m.params * 1e9 * BYTES_PER_PARAM[prec];
+  const dev = F(root, "device").value, gpu = gpuFor(dev);
+  const free = gpu && gpu.used != null ? gpu.total - gpu.used + (STATUS.slots[s].device === dev ? STATUS.slots[s].gpu_alloc || 0 : 0) : null;
+  el.textContent = `${m.params}B params · estimated weights ≈ ${gb(est)} in ${CONFIG.precisions[prec].split(" ·")[0].split(" (")[0]}` + (free != null ? ` · ${gb(free)} free on ${dev}` : "");
+  el.className = "estimate" + (free != null && est * 1.15 > free ? " over" : "");
+}
+
+function slotLabel(s) {
+  const st = STATUS.slots[s];
+  if (!st || !st.repo) return ROLE[s];
+  return `${st.repo.split("/").pop()} · ${st.info.quant || CONFIG.precisions[st.precision]}`;
+}
+
+function updateModelCard(s) {
+  const st = STATUS.slots[s], root = $(`#m-${s}`);
+  if (!st) return;
+  if (!root.dataset.init) {   // seed inputs once from the server
+    const repo = st.repo || st.defaults.repo;
+    const known = CONFIG.models.some(m => m.repo === repo && m.available);
+    F(root, "model").value = known ? repo : "__custom__";
+    F(root, "custom").value = known ? "" : repo;
+    F(root, "custom-wrap").hidden = known;
+    F(root, "precision").value = st.precision || st.defaults.precision;
+    F(root, "device").value = st.device || st.defaults.device;
+    root.dataset.init = 1;
+  }
+  const pill = F(root, "pill");
+  pill.className = "pill " + st.state;
+  pill.textContent = st.state === "loading" ? `loading… ${st.elapsed}s` : st.state;
+  F(root, "load").disabled = st.state === "loading" || running;
+  F(root, "unload").disabled = st.state !== "ready" || running;
+
+  const order = ["download", "tokenizer", "weights", "warmup", "ready"], cur = order.indexOf(st.stage);
+  root.querySelectorAll(".step").forEach(el => {
+    const i = order.indexOf(el.dataset.step);
+    el.className = "step" + (st.state === "empty" ? "" : i < cur || st.state === "ready" ? " done" : i === cur && st.state === "loading" ? " active" : "");
+  });
+  const dl = st.download;
+  F(root, "dl").textContent = dl.total ? `${gb(dl.done)} / ${gb(dl.total)}` : "–";
+  F(root, "dlbar").style.width = dl.total ? (100 * dl.done / dl.total) + "%" : "0";
+  const gpu = gpuFor(st.device);
+  F(root, "mem").textContent = st.gpu_alloc != null && gpu ? `${gb(st.gpu_alloc)} of ${gb(gpu.total)}` : "–";
+  F(root, "membar").style.width = st.gpu_alloc != null && gpu ? (100 * st.gpu_alloc / gpu.total) + "%" : "0";
+  const i = st.info || {};
+  F(root, "fp").textContent = gb(i.footprint);
+  F(root, "lt").textContent = i.load_s != null ? i.load_s.toFixed(1) + " s" : "–";
+  F(root, "disk").textContent = gb(i.disk);
+  F(root, "q").textContent = i.quant || "–";
+  F(root, "q").title = i.quant || "";
+  F(root, "err").textContent = st.error || "";
+  const log = F(root, "log"), txt = st.log.map(l => `[${l.t.toFixed(1)}s] ${l.msg}`).join("\n");
+  if (log.textContent !== txt) { log.textContent = txt; log.scrollTop = log.scrollHeight; }
+  if (!running) F($(`#o-${s}`), "title").textContent = slotLabel(s);
+  updateEstimate(s);
+}
+
+const gpuFor = dev => (dev && STATUS.gpus.find(g => (g.device || `cuda:${g.index}`) === dev)) || null;
+
+function renderGpus() {
+  $("#gpus").innerHTML = STATUS.gpus.map(g => {
+    const pct = g.used != null ? 100 * g.used / g.total : 0;
+    return `<div class="gpu"><div>${esc(g.device || "cuda:" + g.index)} · ${esc(g.name)}</div>
+      <div style="color:var(--muted)">${g.used != null ? gb(g.used) + " / " : ""}${gb(g.total)}</div>
+      <div class="bar"><i style="width:${pct}%;background:#8b98a8"></i></div></div>`;
+  }).join("");
+}
+
+let pollFailures = 0;
+async function poll() {
+  if (!BACKEND || !CONFIG) return;
+  try {
+    STATUS = await getJson("/api/status");
+    if (pollFailures) setConnState("connected"); pollFailures = 0;
+    SLOTS.forEach(updateModelCard);
+    renderGpus(); updateButtons(); renderKpis();
+  } catch (e) { if (++pollFailures === 4 && HOSTED) setConnState("lost"); }   // keep polling: Colab may come back
+}
+
+async function loadModel(s) {
+  const root = $(`#m-${s}`), repo = chosenRepo(s);
+  if (!repo) return toast("Enter a repo id or local path");
+  try {
+    await api("/api/load", { slot: s, repo, precision: F(root, "precision").value, device: F(root, "device").value });
+    poll();
+  } catch (e) { toast(e.message); }
+}
+
+async function unloadModel(s) {
+  try { await api(`/api/unload/${s}`, {}); poll(); } catch (e) { toast(e.message); }
+}
+
+// ------------------------------------------------------------ output cards
+function outCard(s) {
+  return `<div class="card ${s}" id="o-${s}">
+    <div class="out-head"><div class="tag"><span class="dot">${s.toUpperCase()}</span><span data-f="title">${ROLE[s]}</span></div>
+      <span class="pill" data-f="pill">idle</span></div>
+    <div class="live">
+      <span>tokens <b data-f="n">0</b></span><span>decode <b data-f="tps">–</b> tok/s</span>
+      <span>TTFT <b data-f="ttft">–</b></span><span>elapsed <b data-f="el">–</b></span><span>peak mem <b data-f="peak">–</b></span>
+    </div>
+    <div class="output" data-f="out"><span class="placeholder">Load a model and press Generate.</span></div>
+    <div class="tests" data-f="tests"></div>
+    <div class="quality" data-f="quality"></div>
+  </div>`;
+}
+
+function highlight(code, lang) {
+  if (!window.hljs) return esc(code);
+  try {
+    if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+    return hljs.highlightAuto(code).value;
+  } catch { return esc(code); }
+}
+function inlineMd(t) {
+  return esc(t).replace(/`([^`\n]+)`/g, '<code class="inline">$1</code>').replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>");
+}
+function renderMd(text) {
+  let html = "", last = 0, m;
+  const re = /```([\w+-]*)[^\n]*\n?([\s\S]*?)(```|$)/g;
+  while ((m = re.exec(text)) !== null) {
+    html += inlineMd(text.slice(last, m.index));
+    let lang = m[1], code = m[2];
+    const tagLine = !lang && /^(python|py)[ \t]*\n/i.exec(code);   // "```\npython\n..." style fences
+    if (tagLine) { lang = "python"; code = code.slice(tagLine[0].length); }
+    html += `<pre><code class="hljs">${highlight(code, lang || "python")}</code></pre>`;
+    last = re.lastIndex;
+    if (m[3] === "") break;
+  }
+  if (last < text.length) html += inlineMd(text.slice(last));
+  return html;
+}
+
+function paintOutput(s) {
+  const o = out[s], el = F($(`#o-${s}`), "out");
+  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  el.innerHTML = o.text ? renderMd(o.text) : `<span class="placeholder">${o.state === "queued" ? "Waiting for the other model (sequential mode)…" : o.state === "idle" ? "Load a model and press Generate." : "…"}</span>`;
+  el.classList.toggle("cursor", o.state === "generating");
+  if (nearBottom || o.state === "generating") el.scrollTop = el.scrollHeight;
+  o.dirty = false;
+}
+
+function paintLive(s) {
+  const o = out[s], root = $(`#o-${s}`), m = o.metrics;
+  const pill = F(root, "pill");
+  pill.className = "pill " + (["done", "generating", "error"].includes(o.state) ? o.state : "");
+  pill.textContent = o.state;
+  F(root, "n").textContent = o.n;
+  const elapsed = m ? m.total_s : o.state === "generating" ? (performance.now() - o.t0) / 1000 : null;
+  const liveTps = o.firstT != null && o.lastT > o.firstT && o.n > 1 ? (o.n - 1) / (o.lastT - o.firstT) : null;
+  F(root, "tps").textContent = fmt(m ? m.decode_tps : liveTps);
+  F(root, "ttft").textContent = m ? (m.ttft_s * 1000).toFixed(0) + " ms" : o.firstT != null ? (o.firstT * 1000).toFixed(0) + " ms" : "–";
+  F(root, "el").textContent = elapsed != null ? elapsed.toFixed(1) + " s" : "–";
+  F(root, "peak").textContent = m ? gb(m.peak_mem) : "–";
+}
+
+function renderTests(s) {
+  F($(`#o-${s}`), "tests").innerHTML = testsHtml(out[s].tests);
+}
+
+function testsHtml(r, detailed) {
+  if (r === "running") return `<span class="row-label">Tests</span><span style="color:var(--muted)">running…</span>`;
+  if (!r) return "";
+  const color = r.all_passed ? "var(--ok)" : r.passed ? "var(--warn)" : "var(--bad)";
+  let html = `<span class="row-label">Tests</span><span class="score" style="color:${color}">${r.passed}/${r.total} passed</span>`;
+  if (r.timeout) html += `<span class="t bad" title="${esc(r.error)}">timeout</span>`;
+  else if (!r.compiled) html += `<span class="t bad" title="${esc(r.error || "")}">code failed to run</span>`;
+  else if (r.error) html += `<span class="t bad" title="${esc(r.error)}">harness error</span>`;
+  html += r.results.map((t, i) => `<span class="t ${t.ok ? "ok" : "bad"}" title="${esc(t.test.slice(0, 400) + (t.error ? "\n→ " + t.error : ""))}">${t.ok ? "✓" : "✗"} ${r.results.length > 12 ? i + 1 : esc(shortTestName(t.test, i))}</span>`).join("");
+  if (detailed) {   // run-detail view: spell out every failure instead of relying on hover
+    const fails = r.results.filter(t => !t.ok);
+    if (r.error) fails.unshift({ test: "(harness)", error: r.error });
+    if (fails.length) html += `<details class="issues" open><summary>${fails.length} failure${fails.length > 1 ? "s" : ""}</summary><ul>${
+      fails.map(t => `<li><b>${esc(shortTestName(t.test, 0) === "1" ? t.test.split("\n").filter(Boolean).pop().slice(0, 120) : t.test)}</b> → ${esc(t.error || "")}</li>`).join("")}</ul></details>`;
+  }
+  return html;
+}
+const shortTestName = (t, i) => /^\w+\.test_/.test(t) ? t.split(".")[1].replace(/^test_/, "") : String(i + 1);
+
+function qClass(v, good, okish, higherBetter) {
+  if (v == null) return "";
+  return higherBetter ? (v >= good ? "ok" : v >= okish ? "warn" : "bad") : (v <= good ? "ok" : v <= okish ? "warn" : "bad");
+}
+
+function renderQuality(s) {
+  F($(`#o-${s}`), "quality").innerHTML = qualityHtml(out[s].quality);
+}
+
+function qualityHtml(q, openFindings) {
+  if (q === "running") return `<span class="row-label">Quality</span><span style="color:var(--muted)">analyzing…</span>`;
+  if (!q) return "";
+  const { pylint: pl = {}, ruff: rf = {}, radon: rd = {}, bandit: bd = {} } = q;
+  const chips = [];
+  chips.push(pl.error ? `<span class="chip bad" title="${esc(pl.error)}">pylint error</span>`
+    : `<span class="chip ${qClass(pl.score, 8, 5, true)}" title="pylint score (0–10)">pylint <b>${fmt(pl.score, 1)}</b>/10</span>`);
+  chips.push(rf.error ? `<span class="chip bad" title="${esc(rf.error)}">ruff error</span>`
+    : `<span class="chip ${rf.syntax_error ? "bad" : qClass(rf.count, 0, 3)}" title="ruff lint issues (pycodestyle, pyflakes, bugbear, simplify, naming…)">ruff <b>${rf.syntax_error ? "syntax error" : rf.count + " issues"}</b></span>`);
+  if (!rd.error) {
+    chips.push(`<span class="chip ${qClass(rd.cc_avg, 5, 10)}" title="radon mean cyclomatic complexity over ${rd.functions} function(s); max ${rd.cc_max}">complexity <b>${fmt(rd.cc_avg, 1)}</b> (${rd.cc_rank})</span>`);
+    chips.push(`<span class="chip ${qClass(rd.mi, 20, 10, true)}" title="radon maintainability index (0–100, rank A ≥ 20)">MI <b>${fmt(rd.mi, 0)}</b> (${rd.mi_rank})</span>`);
+    chips.push(`<span class="chip" title="source lines of code / comment lines">SLOC <b>${rd.sloc}</b> · comments ${rd.comments}</span>`);
+  } else chips.push(`<span class="chip bad" title="${esc(rd.error)}">radon: unparsable</span>`);
+  if (!bd.error) chips.push(`<span class="chip ${bd.high || bd.medium ? "bad" : bd.low ? "warn" : "ok"}" title="bandit security findings (high/medium/low)">bandit <b>${bd.count}</b>${bd.count ? ` (${bd.high}/${bd.medium}/${bd.low})` : ""}</span>`);
+  const issues = [...(rf.issues || []).map(i => ({ tool: "ruff", ...i })), ...(pl.issues || []).map(i => ({ tool: "pylint", ...i, code: i.code + " " + i.symbol })),
+    ...(bd.issues || []).map(i => ({ tool: "bandit", ...i, code: i.code + " " + i.severity }))].sort((x, y) => x.line - y.line);
+  return `<span class="row-label">Quality</span>` + chips.join("") + (issues.length ? `<details class="issues" ${openFindings ? "open" : ""}><summary>${issues.length} findings</summary><ul>${
+    issues.map(i => `<li>L${i.line} <b>${esc(i.tool)} ${esc(i.code)}</b> ${esc(i.message)}</li>`).join("")}</ul></details>` : "");
+}
+
+// ------------------------------------------------------------ tasks & benchmarks
+function initSources() {
+  $("#source").innerHTML = `<option value="builtin">Built-in tasks (${CONFIG.presets.length})</option>` +
+    Object.entries(CONFIG.benchmarks).map(([k, b]) => `<option value="${k}">${esc(b.name)} (${b.count})</option>`).join("");
+  $("#source").onchange = () => selectSource($("#source").value);
+  $("#problem").onchange = () => selectProblem(+$("#problem").value);
+  $("#random").onclick = () => { const n = $("#problem").options.length; $("#problem").selectedIndex = Math.floor(Math.random() * n); selectProblem(+$("#problem").value); };
+}
+
+async function selectSource(src) {
+  const sel = $("#problem");
+  const isBench = src !== "builtin";
+  $("#batch-bar").hidden = !isBench;
+  if (!isBench) {
+    sel.innerHTML = CONFIG.presets.map((p, i) => `<option value="${i}">${esc(p.title)}${p.tests.length ? ` · ${p.tests.length} tests` : ""}</option>`).join("");
+    return selectProblem(0);
+  }
+  sel.innerHTML = `<option>Loading ${esc(CONFIG.benchmarks[src].name)} from the Hub…</option>`; sel.disabled = true;
+  try {
+    if (!listings[src]) listings[src] = (await getJson(`/api/benchmarks/${src}`)).problems;
+    if ($("#source").value !== src) return;
+    sel.innerHTML = listings[src].map(p => `<option value="${p.index}">${esc(p.task_id)} · ${esc(p.title)}</option>`).join("");
+    $("#batch-n").max = listings[src].length; $("#batch-start").max = listings[src].length - 1;
+    await selectProblem(0);
+  } catch (e) { toast(e.message); sel.innerHTML = ""; }
+  finally { sel.disabled = false; }
+}
+
+async function selectProblem(index) {
+  const src = $("#source").value;
+  $("#problem").value = index;
+  if (src === "builtin") {
+    const p = CONFIG.presets[index];
+    task = { source: src, index, title: p.title };
+    $("#prompt").value = p.prompt; $("#system").value = p.system; $("#tests").value = p.tests.join("\n");
+    $("#max-tokens").value = 512;
+  } else {
+    const p = await getJson(`/api/benchmarks/${src}/${index}`);
+    task = { source: src, index, title: p.task_id, problem: p };
+    $("#prompt").value = p.prompt; $("#system").value = p.system;
+    $("#max-tokens").value = p.max_new_tokens;
+    $("#bench-test").textContent = p.test.trim();
+    $("#bench-test-label").textContent = p.kind === "humaneval"
+      ? `HumanEval check() for ${p.entry_point}: graded as a single pass/fail (read only)`
+      : `BigCodeBench unittest suite for ${p.entry_point}: each test method is reported (read only)`;
+  }
+  $("#tests-builtin").hidden = src !== "builtin";
+  $("#tests-bench").hidden = src === "builtin";
+}
+
+function currentGrader() {
+  if (task && task.source !== "builtin") return { benchmark: task.source, index: task.index };
+  const tests = $("#tests").value.split("\n").map(t => t.trim()).filter(Boolean);
+  return tests.length ? { tests } : null;
+}
+
+// ------------------------------------------------------------ generation
+function updateButtons() {
+  const anyReady = SLOTS.some(s => STATUS.slots[s] && STATUS.slots[s].state === "ready");
+  $("#go").disabled = running || !anyReady || !!batch?.active;
+  $("#batch-go").disabled = running || !anyReady || !!batch?.active;
+  $("#stop").disabled = !running && !batch?.active;
+  ["#source", "#problem", "#random"].forEach(id => $(id).disabled = !!batch?.active);
+}
+
+function resetOut(s, active) {
+  out[s] = { text: "", n: 0, points: [[0, 0]], state: active ? "queued" : "idle", metrics: null, firstT: null, lastT: null,
+             t0: performance.now(), tests: null, quality: null, dirty: true };
+  F($(`#o-${s}`), "title").textContent = slotLabel(s);
+  paintOutput(s); paintLive(s); renderTests(s); renderQuality(s);
+}
+
+async function runOnce(opts = {}) {
+  const ready = SLOTS.filter(s => STATUS.slots[s] && STATUS.slots[s].state === "ready");
+  if (!ready.length) { toast("Load at least one model first"); return null; }
+  const request = { prompt: $("#prompt").value, system: $("#system").value, slots: ready,
+                    max_new_tokens: +$("#max-tokens").value, temperature: +$("#temperature").value, mode: $("#mode").value };
+  runCtx = { title: task ? task.title : "Custom prompt", grader: currentGrader(), similarity: null, post: [],
+             labels: { a: slotLabel("a"), b: slotLabel("b") }, request,
+             models: Object.fromEntries(SLOTS.map(s => [s, ready.includes(s) ? modelSnapshot(s) : null])) };
+  if (task && task.source === "builtin" && request.prompt !== CONFIG.presets[task.index].prompt) runCtx.title = "Custom prompt";
+  SLOTS.forEach(s => resetOut(s, ready.includes(s)));
+  running = true; updateButtons(); SLOTS.forEach(updateModelCard); renderKpis();
+  requestAnimationFrame(tick);
+  try {
+    const res = await api("/api/generate", request);
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 2);
+        if (line.startsWith("data: ")) handleEvent(JSON.parse(line.slice(6)));
+      }
+    }
+  } catch (e) { toast(e.message); }
+  SLOTS.forEach(s => { if (out[s].state === "generating" || out[s].state === "queued") out[s].state = "error"; paintLive(s); paintOutput(s); });
+  await Promise.all(runCtx.post);
+  running = false;
+  updateButtons(); SLOTS.forEach(updateModelCard); renderKpis(); drawChart();
+  if (!(opts.batchId && batch.stop)) await saveRun(opts);   // a batch problem cut short by Stop isn't kept
+  return { title: runCtx.title, a: summarize("a"), b: summarize("b"), similarity: runCtx.similarity && runCtx.similarity.similarity };
+}
+
+function handleEvent(ev) {
+  const o = out[ev.slot];
+  switch (ev.type) {
+    case "start": o.state = "generating"; o.t0 = performance.now(); break;
+    case "token":
+      o.text += ev.text; o.n = ev.n; o.lastT = ev.t; if (o.firstT == null) o.firstT = ev.t;
+      o.points.push([ev.t, ev.n]); o.dirty = true; break;
+    case "done":
+      o.text = ev.text; o.metrics = ev.metrics; o.n = ev.metrics.new_tokens; o.state = "done";
+      o.points.push([ev.metrics.total_s, ev.metrics.new_tokens]);
+      paintOutput(ev.slot); paintLive(ev.slot);
+      runCtx.post.push(postProcess(ev.slot, ev.text));
+      break;
+    case "error": o.state = "error"; o.text += `\n\n**Error:** ${ev.msg}`; paintOutput(ev.slot); paintLive(ev.slot); break;
+    case "compare": runCtx.similarity = ev; break;
+  }
+  renderKpis();
+}
+
+async function postProcess(s, text) {
+  const g = runCtx.grader, o = out[s];
+  const wantsQuality = g || /```(python|py)\b/i.test(text);
+  const jobs = [];
+  if (g) {
+    o.tests = "running"; renderTests(s);
+    jobs.push(getJson("/api/run_tests", { text, ...g }).then(r => { o.tests = r; })
+      .catch(e => { o.tests = { passed: 0, total: 0, results: [], compiled: false, error: e.message }; })
+      .finally(() => { renderTests(s); renderKpis(); }));
+  }
+  if (wantsQuality) {
+    o.quality = "running"; renderQuality(s);
+    const body = g && g.benchmark ? { text, ...g } : { text };
+    jobs.push(getJson("/api/analyze", body).then(r => { o.quality = r; })
+      .catch(e => { o.quality = { pylint: { error: e.message }, ruff: { error: e.message }, radon: { error: e.message }, bandit: { error: e.message } }; })
+      .finally(() => { renderQuality(s); renderKpis(); }));
+  }
+  await Promise.all(jobs);
+}
+
+function summarize(s) {
+  const o = out[s];
+  if (!o || !o.metrics) return null;
+  const t = o.tests && o.tests !== "running" ? o.tests : null, q = o.quality && o.quality !== "running" ? o.quality : null;
+  return {
+    tokens: o.metrics.new_tokens, decode_tps: o.metrics.decode_tps, ttft_ms: o.metrics.ttft_s * 1000, total_s: o.metrics.total_s,
+    peak_mem_gb: o.metrics.peak_mem != null ? o.metrics.peak_mem / 1e9 : null,
+    pass: t ? !!t.all_passed : null, tests_passed: t ? t.passed : null, tests_total: t ? t.total : null,
+    pylint: q?.pylint?.score ?? null, ruff: q?.ruff?.count ?? null, cc: q?.radon?.cc_avg ?? null, mi: q?.radon?.mi ?? null,
+    sloc: q?.radon?.sloc ?? null, bandit: q?.bandit?.count ?? null, text: o.text,
+  };
+}
+
+let lastPaint = 0;
+function tick(now) {
+  if (now - lastPaint > 80) {
+    SLOTS.forEach(s => { if (out[s].dirty) paintOutput(s); paintLive(s); });
+    drawChart(); lastPaint = now;
+  }
+  if (running) requestAnimationFrame(tick);
+}
+
+async function stopAll() {
+  if (batch && batch.active) batch.stop = true;
+  try { await api("/api/stop", {}); } catch (e) { toast(e.message); }
+}
+
+// ------------------------------------------------------------ comparison
+function ratio(b, a, lowerIsBetter) {
+  if (a == null || b == null || !a) return "–";
+  const r = b / a;
+  return lowerIsBetter ? (r < 1 ? "−" : "+") + Math.abs((1 - r) * 100).toFixed(0) + "%" : r.toFixed(2) + "×";
+}
+
+function renderKpis() {
+  const A = STATUS.slots.a || {}, B = STATUS.slots.b || {};
+  const sa = out.a ? summarize("a") || {} : {}, sb = out.b ? summarize("b") || {} : {};
+  const fa = A.info && A.info.footprint, fb = B.info && B.info.footprint;
+  const ta = out.a && typeof out.a.tests === "object" ? out.a.tests : null, tb = out.b && typeof out.b.tests === "object" ? out.b.tests : null;
+  const sim = runCtx && runCtx.similarity;
+  const tiles = [
+    { k: "Weights memory (B vs A)", v: ratio(fb, fa, true), d: `<span class="ca">A ${gb(fa)}</span> · <span class="cb">B ${gb(fb)}</span>` },
+    { k: "Decode speed (B ÷ A)", v: ratio(sb.decode_tps, sa.decode_tps), d: `<span class="ca">A ${fmt(sa.decode_tps)}</span> · <span class="cb">B ${fmt(sb.decode_tps)}</span> tok/s` },
+    { k: "Time to first token", v: ratio(sb.ttft_ms, sa.ttft_ms, true), d: `<span class="ca">A ${fmt(sa.ttft_ms, 0)}</span> · <span class="cb">B ${fmt(sb.ttft_ms, 0)}</span> ms` },
+    { k: "Tests passed", v: `<span class="ca">${ta ? ta.passed + "/" + ta.total : "–"}</span> · <span class="cb">${tb ? tb.passed + "/" + tb.total : "–"}</span>`, d: "A · B" },
+    { k: "Pylint score (0–10)", v: `<span class="ca">${fmt(sa.pylint, 1)}</span> · <span class="cb">${fmt(sb.pylint, 1)}</span>`,
+      d: `ruff issues <span class="ca">${sa.ruff ?? "–"}</span> · <span class="cb">${sb.ruff ?? "–"}</span>` },
+    { k: "Output similarity", v: sim ? (sim.similarity * 100).toFixed(0) + "%" : "–", d: sim ? (sim.identical ? "identical outputs" : "character-level match") : "after both finish" },
+  ];
+  $("#kpis").innerHTML = tiles.map(t => `<div class="kpi"><div class="k">${t.k}</div><div class="v">${t.v}</div><div class="d">${t.d}</div></div>`).join("");
+}
+
+function modelSnapshot(s) {
+  const st = STATUS.slots[s];
+  return { repo: st.repo, precision: st.precision, device: st.device, info: st.info, label: slotLabel(s) };
+}
+
+async function saveRun(opts) {
+  const slots = {};
+  SLOTS.forEach(s => {
+    const o = out[s];
+    slots[s] = runCtx.models[s] ? { state: o.state, text: o.text, metrics: o.metrics, points: o.points,
+      tests: typeof o.tests === "object" ? o.tests : null, quality: typeof o.quality === "object" ? o.quality : null } : null;
+  });
+  const record = {
+    source: task ? task.source : "builtin", task: runCtx.title, task_index: task ? task.index : null,
+    prompt: runCtx.request.prompt, system: runCtx.request.system, grader: runCtx.grader,
+    config: { max_new_tokens: runCtx.request.max_new_tokens, temperature: runCtx.request.temperature, mode: runCtx.request.mode },
+    models: runCtx.models, slots, similarity: runCtx.similarity,
+    batch_id: opts.batchId || null, batch_label: opts.batchLabel || null,
+  };
+  try {
+    await store.save(record);
+    loadHistory();
+  } catch (e) { toast("Could not save run to history: " + e.message); }
+}
+
+// ------------------------------------------------------------ run history
+let groups = [], historyRows = [];
+
+// Where runs live: the local server's SQLite, or Supabase on the hosted site. Rows are per problem:
+// {id, created, owner, mine, ...summary}; the summary is computed by the backend (/api/summarize).
+const store = HOSTED ? {
+  async rows() {
+    const all = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from("runs").select("id, created_at, user_id, user_email, summary").order("id").range(from, from + 999);
+      if (error) throw error;
+      all.push(...data);
+      if (data.length < 1000) break;
+    }
+    return all.map(r => ({ id: r.id, created: r.created_at, owner: r.user_email, mine: r.user_id === me.id, ...r.summary }));
+  },
+  async get(id) {
+    const { data, error } = await sb.from("runs").select("id, created_at, user_email, record").eq("id", id).single();
+    if (error) throw error;
+    return { ...data.record, id: data.id, created: data.created_at, owner: data.user_email };
+  },
+  async save(record) {
+    const summary = await getJson("/api/summarize", record);
+    const { error } = await sb.from("runs").insert({ batch_id: record.batch_id, source: record.source, task: record.task, summary, record });
+    if (error) throw error;
+  },
+  async deleteGroup(key) {
+    const q = sb.from("runs").delete();
+    const { data, error } = await (key.startsWith("single-") ? q.eq("id", +key.slice(7)) : q.eq("batch_id", key)).select("id");
+    if (error) throw error;
+    if (!data.length) throw new Error("You can only delete runs you created");
+  },
+} : {
+  rows: async () => (await getJson("/api/history/rows")).rows.map(r => ({ ...r, mine: true })),
+  get: id => getJson(`/api/runs/${id}`),
+  save: record => getJson("/api/runs", record),
+  deleteGroup: key => api(`/api/history/${encodeURIComponent(key)}`, null, "DELETE"),
+};
+
+async function loadHistory() {
+  try { historyRows = await store.rows(); groups = buildGroups(historyRows); }
+  catch (e) { toast("Could not load history: " + e.message); }
+  renderHistory();
+}
+
+const groupKey = r => r.batch_id || `single-${r.id}`;
+
+function buildGroups(rows) {
+  const buckets = new Map();
+  rows.forEach(r => { const k = groupKey(r); if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(r); });
+  return [...buckets].map(([k, rs]) => describeGroup(k, rs, false)).sort((x, y) => y.last_id - x.last_id);
+}
+
+function aggregateSlot(rows, s) {
+  const xs = rows.map(r => r[s]).filter(Boolean);
+  if (!xs.length) return null;
+  const graded = xs.filter(x => x.graded), analyzed = xs.filter(x => x.analyzed), f = xs[0];
+  const total = a => { const v = a.filter(x => x != null); return v.length ? v.reduce((p, q) => p + q, 0) : null; };
+  const passed = graded.filter(x => x.pass).length;
+  const peaks = xs.map(x => x.peak_mem).filter(x => x != null);
+  return {
+    repo: f.repo, precision: f.precision, label: f.label, footprint: f.footprint, problems: xs.length,
+    graded: graded.length, passed, pass_at_1: graded.length ? passed / graded.length : null,
+    tests_passed: total(graded.map(x => x.tests_passed)), tests_total: total(graded.map(x => x.tests_total)),
+    failed_to_run: graded.filter(x => x.ran === false).length, timeouts: graded.filter(x => x.timeout).length,
+    analyzed: analyzed.length, pylint: mean(analyzed.map(x => x.pylint)),
+    ruff_total: total(analyzed.map(x => x.ruff)), ruff_mean: mean(analyzed.map(x => x.ruff)),
+    syntax_errors: analyzed.filter(x => x.syntax_error).length,
+    cc: mean(analyzed.map(x => x.cc)), mi: mean(analyzed.map(x => x.mi)), sloc: mean(analyzed.map(x => x.sloc)),
+    bandit_total: total(analyzed.map(x => x.bandit)), bandit_high: total(analyzed.map(x => x.bandit_high)), bandit_medium: total(analyzed.map(x => x.bandit_medium)),
+    decode_tps: mean(xs.map(x => x.decode_tps)), ttft_s: mean(xs.map(x => x.ttft_s)), tokens: mean(xs.map(x => x.tokens)),
+    total_s: total(xs.map(x => x.total_s)), peak_mem: peaks.length ? Math.max(...peaks) : null,
+  };
+}
+
+function describeGroup(key, rows, withDetails) {
+  const first = rows[0], last = rows[rows.length - 1], isBatch = first.batch_id != null;
+  const g = {
+    key, kind: isBatch ? "batch" : "single", label: isBatch ? first.batch_label || first.task : first.task,
+    source: first.source, created: first.created, last_id: last.id, problems: rows.length, config: first.config,
+    owner: first.owner, mine: rows.every(r => r.mine),
+    a: aggregateSlot(rows, "a"), b: aggregateSlot(rows, "b"), similarity: mean(rows.map(r => r.similarity)),
+  };
+  const both = rows.filter(r => r.a && r.b && r.a.graded && r.b.graded);
+  g.outcomes = both.length ? {
+    both_pass: both.filter(r => r.a.pass && r.b.pass).length, only_a: both.filter(r => r.a.pass && !r.b.pass).length,
+    only_b: both.filter(r => !r.a.pass && r.b.pass).length, both_fail: both.filter(r => !r.a.pass && !r.b.pass).length,
+  } : null;
+  if (withDetails) {
+    const slim = x => x ? { ...x, issue_keys: (x.issues || []).map(i => `${i.tool}:${i.code}`) } : null;
+    g.rows = rows.map(r => ({ id: r.id, created: r.created, task: r.task, task_index: r.task_index, similarity: r.similarity, a: slim(r.a), b: slim(r.b) }));
+    const table = new Map();
+    rows.forEach(r => SLOTS.forEach(s => (r[s]?.issues || []).forEach(i => {
+      const k = `${i.tool}:${i.code}`;
+      if (!table.has(k)) table.set(k, { key: k, tool: i.tool, code: i.code, name: i.name, a: 0, b: 0, a_problems: 0, b_problems: 0 });
+      const e = table.get(k); e[s] += i.n; e[`${s}_problems`] += 1;
+    })));
+    g.issues = [...table.values()].sort((x, y) => (y.a + y.b) - (x.a + x.b));
+  }
+  return g;
+}
+
+const pct = x => x == null ? "–" : (100 * x).toFixed(1) + "%";
+const when = iso => { const d = new Date(iso); return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); };
+const BENCH_NAMES = { humaneval: "HumanEval", "bigcodebench-hard": "BigCodeBench-Hard (instruct)", bigcodebench: "BigCodeBench full (instruct)" };
+const srcName = src => src === "builtin" ? "Built-in task" : (CONFIG?.benchmarks?.[src] || {}).name || BENCH_NAMES[src] || src || "";
+const modelShort = x => x ? `${esc((x.repo || "").split("/").pop())} · ${esc(x.precision || "")}` : "–";
+const passCell = x => x && x.graded ? `<span class="${x.pass_at_1 === 1 ? "pass" : x.pass_at_1 === 0 ? "fail" : ""}">${pct(x.pass_at_1)}</span> <span class="muted">(${x.passed}/${x.graded})</span>` : "–";
+
+function shownGroups() {
+  const f = $("#history-filter").value;
+  return !f ? groups : f === "mine" ? groups.filter(g => g.mine) : groups.filter(g => g.kind === f);
+}
+
+function renderHistory() {
+  const rows = shownGroups();
+  $("#history-count").textContent = `${rows.length} run${rows.length === 1 ? "" : "s"}`;
+  $("#history").innerHTML = rows.map(g => `<tr class="clickable" data-key="${esc(g.key)}" tabindex="0">
+    <td>${when(g.created)}${HOSTED ? `<div class="muted" style="font-size:11px">${esc(g.owner || "")}</div>` : ""}</td><td>${esc(g.label || "")} <span class="pill">${g.kind === "batch" ? esc(srcName(g.source)) : "single"}</span></td><td>${g.problems}</td>
+    <td class="ca">${modelShort(g.a)}</td><td class="cb">${modelShort(g.b)}</td>
+    <td>${passCell(g.a)}</td><td>${passCell(g.b)}</td>
+    <td>${fmt(g.a?.pylint, 2)}</td><td>${fmt(g.b?.pylint, 2)}</td><td>${fmt(g.a?.ruff_mean, 1)}</td><td>${fmt(g.b?.ruff_mean, 1)}</td>
+    <td class="ca">${fmt(g.a?.decode_tps)}</td><td class="cb">${fmt(g.b?.decode_tps)}</td></tr>`).join("")
+    || `<tr><td colspan="13" style="color:var(--faint)">No runs yet. Every Generate and every batch is saved here.</td></tr>`;
+}
+
+function csvDownload(name, head, lines) {
+  const cell = v => v == null ? "" : typeof v === "string" ? `"${v.replace(/"/g, '""')}"` : v;
+  download(name, [head.join(","), ...lines.map(l => l.map(cell).join(","))].join("\n"), "text/csv");
+}
+
+const AGG_FIELDS = ["repo", "precision", "problems", "pass_at_1", "passed", "graded", "tests_passed", "tests_total", "failed_to_run", "timeouts",
+  "pylint", "ruff_total", "ruff_mean", "syntax_errors", "cc", "mi", "sloc", "bandit_total", "bandit_high", "decode_tps", "ttft_s", "tokens", "total_s", "footprint", "peak_mem"];
+
+function exportHistoryCsv() {
+  csvDownload(`quantbench_runs_${Date.now()}.csv`, ["created", "run", "kind", "source", "problems", ...SLOTS.flatMap(s => AGG_FIELDS.map(f => `${s}_${f}`)), "similarity"],
+    shownGroups().map(g => [g.created, g.label, g.kind, g.source, g.problems, ...SLOTS.flatMap(s => AGG_FIELDS.map(f => g[s] ? g[s][f] : null)), g.similarity]));
+}
+
+// ------------------------------------------------------------ run report
+let report = null;   // {g, outcome, issue, tool, showAllIssues, query, expanded:Set, cache:{}}
+
+async function openGroup(key) {
+  const rows = historyRows.filter(r => groupKey(r) === key);
+  if (!rows.length) return toast("Run not found");
+  const g = describeGroup(key, rows, true);
+  report = { g, outcome: "all", issue: null, tool: "all", showAllIssues: false, query: "", expanded: new Set(), cache: {} };
+  if (g.rows.length === 1) report.expanded.add(g.rows[0].id);
+  renderReport();
+  const dlg = $("#run-dialog");
+  if (!dlg.open) dlg.showModal();
+  dlg.scrollTop = 0;
+  report.expanded.forEach(loadProblemDetail);
+}
+
+// [label, value(agg), display(agg), better]
+const SUMMARY_ROWS = [
+  ["Correctness"],
+  ["pass@1 (all tests pass)", a => a.pass_at_1, a => a.graded ? `${pct(a.pass_at_1)} (${a.passed}/${a.graded})` : "not graded", "higher"],
+  ["Individual test cases passed", a => a.tests_total ? a.tests_passed / a.tests_total : null, a => a.tests_total ? `${a.tests_passed}/${a.tests_total} (${pct(a.tests_passed / a.tests_total)})` : "–", "higher"],
+  ["Code failed to run", a => a.graded ? a.failed_to_run : null, a => a.graded ? `${a.failed_to_run}` : "–", "lower"],
+  ["Timeouts", a => a.graded ? a.timeouts : null, a => a.graded ? `${a.timeouts}` : "–", "lower"],
+  ["Code quality (static analysis)"],
+  ["Pylint score (mean, 0–10)", a => a.pylint, a => fmt(a.pylint, 2), "higher"],
+  ["Ruff issues (total · per problem)", a => a.ruff_total, a => a.ruff_total == null ? "–" : `${a.ruff_total} · ${fmt(a.ruff_mean, 2)}`, "lower"],
+  ["Syntax errors", a => a.analyzed ? a.syntax_errors : null, a => a.analyzed ? `${a.syntax_errors}` : "–", "lower"],
+  ["Cyclomatic complexity (mean)", a => a.cc, a => fmt(a.cc, 2), "lower"],
+  ["Maintainability index (mean, 0–100)", a => a.mi, a => fmt(a.mi, 1), "higher"],
+  ["Bandit security findings (total · high/medium)", a => a.bandit_total, a => a.bandit_total == null ? "–" : `${a.bandit_total} · ${a.bandit_high ?? 0}/${a.bandit_medium ?? 0}`, "lower"],
+  ["Source lines of code (mean)", a => a.sloc, a => fmt(a.sloc, 1), null],
+  ["Efficiency"],
+  ["Decode speed (mean tok/s)", a => a.decode_tps, a => fmt(a.decode_tps, 1), "higher"],
+  ["Time to first token (mean)", a => a.ttft_s, a => a.ttft_s == null ? "–" : `${(a.ttft_s * 1000).toFixed(0)} ms`, "lower"],
+  ["Tokens generated (mean)", a => a.tokens, a => fmt(a.tokens, 0), null],
+  ["Total generation time", a => a.total_s, a => a.total_s == null ? "–" : `${a.total_s.toFixed(1)} s`, "lower"],
+  ["Weights memory", a => a.footprint, a => gb(a.footprint), "lower"],
+  ["Peak GPU memory during generation", a => a.peak_mem, a => gb(a.peak_mem), "lower"],
+];
+
+function summaryTable(g) {
+  const rows = SUMMARY_ROWS.map(([label, val, show, better]) => {
+    if (!val) return `<tr class="grp"><td colspan="3">${label}</td></tr>`;
+    const v = Object.fromEntries(SLOTS.map(s => [s, g[s] ? val(g[s]) : null]));
+    const best = s => better && v.a != null && v.b != null && v.a !== v.b && (better === "higher" ? v[s] > v[SLOTS.find(x => x !== s)] : v[s] < v[SLOTS.find(x => x !== s)]);
+    return `<tr><td>${label}</td>${SLOTS.map(s => `<td class="c${s}"><span class="${best(s) ? "better" : ""}">${g[s] ? show(g[s]) : "–"}</span></td>`).join("")}</tr>`;
+  }).join("");
+  return `<table class="sum-table"><thead><tr><th>Metric</th><th class="ca">A · ${esc(g.a?.label || "–")}</th><th class="cb">B · ${esc(g.b?.label || "–")}</th></tr></thead>
+    <tbody>${rows}<tr class="grp"><td colspan="3">Agreement</td></tr><tr><td>Output similarity A↔B (mean)</td><td colspan="2">${g.similarity == null ? "–" : pct(g.similarity)}</td></tr></tbody></table>
+    <p class="muted" style="font-size:12px;margin:8px 0 0">Underlined = better of the two. pass@1 counts a problem as solved only if every test passes.</p>`;
+}
+
+const OUTCOMES = [["both_pass", "Both pass"], ["only_a", "Only A passes (B regressed)"], ["only_b", "Only B passes"], ["both_fail", "Both fail"]];
+const PROBLEM_FILTERS = [
+  ["all", "All problems"], ["a_fail", "A failed"], ["b_fail", "B failed"], ["only_a", "Only A passes (B regressed)"], ["only_b", "Only B passes"],
+  ["both_fail", "Both fail"], ["both_pass", "Both pass"], ["a_norun", "A code failed to run"], ["b_norun", "B code failed to run"],
+  ["a_syntax", "A syntax error"], ["b_syntax", "B syntax error"], ["differ", "A and B disagree"],
+];
+
+function matchOutcome(r, f) {
+  const a = r.a || {}, b = r.b || {};
+  switch (f) {
+    case "a_fail": return a.graded && !a.pass;
+    case "b_fail": return b.graded && !b.pass;
+    case "only_a": return a.pass && b.graded && !b.pass;
+    case "only_b": return b.pass && a.graded && !a.pass;
+    case "both_fail": return a.graded && b.graded && !a.pass && !b.pass;
+    case "both_pass": return a.pass && b.pass;
+    case "a_norun": return a.ran === false;
+    case "b_norun": return b.ran === false;
+    case "a_syntax": return !!a.syntax_error;
+    case "b_syntax": return !!b.syntax_error;
+    case "differ": return a.graded && b.graded && a.pass !== b.pass;
+    default: return true;
+  }
+}
+
+function shownProblems() {
+  const q = report.query.trim().toLowerCase();
+  return report.g.rows.filter(r => matchOutcome(r, report.outcome)
+    && (!report.issue || SLOTS.some(s => r[s] && r[s].issue_keys.includes(report.issue)))
+    && (!q || (r.task || "").toLowerCase().includes(q)));
+}
+
+function issuesSection(g) {
+  const tools = ["all", "pylint", "ruff", "bandit"];
+  const list = g.issues.filter(i => report.tool === "all" || i.tool === report.tool);
+  const shown = report.showAllIssues ? list : list.slice(0, 25);
+  const cnt = (i, s) => i[s] ? `${i[s]} <span class="muted">(${i[`${s}_problems`]} problem${i[`${s}_problems`] === 1 ? "" : "s"})</span>` : `<span class="muted">0</span>`;
+  return `<div class="chips">${tools.map(t => `<button class="chipbtn ${report.tool === t ? "active" : ""}" data-act="tool" data-v="${t}">${t === "all" ? "All tools" : t}
+      <span class="muted">${t === "all" ? g.issues.length : g.issues.filter(i => i.tool === t).length}</span></button>`).join("")}
+      <span class="muted" style="font-size:12px">Click an issue to list the problems where it occurs.</span></div>
+    ${list.length ? `<div class="table-wrap"><table class="issue-table"><thead><tr><th>Tool</th><th>Code</th><th>Issue</th><th class="ca">A occurrences</th><th class="cb">B occurrences</th></tr></thead><tbody>
+      ${shown.map(i => `<tr class="clickable ${report.issue === i.key ? "active" : ""}" data-act="issue" data-v="${esc(i.key)}"><td>${esc(i.tool)}</td><td><b>${esc(i.code)}</b></td>
+        <td class="desc">${esc(i.name)}</td><td>${cnt(i, "a")}</td><td>${cnt(i, "b")}</td></tr>`).join("")}</tbody></table></div>
+      ${list.length > shown.length ? `<button class="small" data-act="all-issues" style="margin-top:8px">Show all ${list.length} issue types</button>` : ""}`
+    : `<p class="muted">No issues raised${report.tool === "all" ? "" : " by " + report.tool}.</p>`}`;
+}
+
+function problemsSection(g) {
+  const rows = shownProblems();
+  const ok = x => x == null || !x.graded ? "<td>–</td>" : `<td class="${x.pass ? "pass" : "fail"}">${x.pass ? "✓ pass" : x.ran === false ? "✗ didn't run" : "✗ fail"}</td>`;
+  const tt = x => x && x.tests_total != null ? `${x.tests_passed}/${x.tests_total}` : "–";
+  const activeIssue = report.issue ? g.issues.find(i => i.key === report.issue) : null;
+  const body = rows.map(r => {
+    const open = report.expanded.has(r.id);
+    return `<tr class="clickable ${open ? "expanded" : ""}" data-act="problem" data-v="${r.id}"><td>${open ? "▾" : "▸"} ${esc(r.task || "")}</td>${ok(r.a)}${ok(r.b)}
+      <td>${tt(r.a)}</td><td>${tt(r.b)}</td><td>${fmt(r.a?.pylint, 1)}</td><td>${fmt(r.b?.pylint, 1)}</td><td>${r.a?.ruff ?? "–"}</td><td>${r.b?.ruff ?? "–"}</td>
+      <td>${r.a?.bandit ?? "–"}</td><td>${r.b?.bandit ?? "–"}</td><td class="ca">${fmt(r.a?.decode_tps)}</td><td class="cb">${fmt(r.b?.decode_tps)}</td>
+      <td>${r.similarity != null ? (r.similarity * 100).toFixed(0) + "%" : "–"}</td></tr>`
+      + (open ? `<tr class="expand"><td colspan="14"><div id="pd-${r.id}">${report.cache[r.id] ? problemDetailHtml(report.cache[r.id]) : "Loading…"}</div></td></tr>` : "");
+  }).join("");
+  return `<div class="toolbar">
+      <select data-act="filter">${PROBLEM_FILTERS.map(([k, l]) => `<option value="${k}" ${report.outcome === k ? "selected" : ""}>${l} (${g.rows.filter(r => matchOutcome(r, k)).length})</option>`).join("")}</select>
+      <input data-act="search" placeholder="Search task…" value="${esc(report.query)}">
+      ${activeIssue ? `<span class="chipbtn active">with ${esc(activeIssue.tool)} ${esc(activeIssue.code)} <a data-act="clear-issue" style="cursor:pointer;margin-left:4px">✕</a></span>` : ""}
+      <span class="muted" style="font-size:12px">${rows.length} of ${g.rows.length} shown · click a problem to see its code, failing tests and every finding</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Problem</th><th class="ca">A result</th><th class="cb">B result</th><th>A tests</th><th>B tests</th><th>A pylint</th><th>B pylint</th>
+      <th>A ruff</th><th>B ruff</th><th>A bandit</th><th>B bandit</th><th>A tok/s</th><th>B tok/s</th><th>Similarity</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="14" class="muted">No problems match this filter.</td></tr>`}</tbody></table></div>`;
+}
+
+function renderReport() {
+  const g = report.g, c = g.config || {};
+  const o = g.outcomes;
+  $("#rd-body").innerHTML = `
+    <div class="rd-head">
+      <div style="min-width:0"><h1>${esc(g.label || "")}</h1>
+        <div class="sub">${new Date(g.created).toLocaleString()}${HOSTED && g.owner ? ` · by ${esc(g.owner)}` : ""} · ${esc(srcName(g.source))} · ${g.problems} problem${g.problems === 1 ? "" : "s"}${c.max_new_tokens ? ` · max ${c.max_new_tokens} tokens · temperature ${c.temperature} · ${c.mode}` : ""}</div></div>
+      <div class="btns" style="margin:0"><button class="small" data-act="csv">Export problems CSV</button>${g.mine ? `<button class="small" data-act="delete">Delete run</button>` : ""}<button class="small" data-act="close">Close ✕</button></div>
+    </div>
+    <section class="card"><h3 class="muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px">Overall results</h3><div class="table-wrap">${summaryTable(g)}</div></section>
+    ${o ? `<section class="card rep-section"><h3>Outcomes per problem</h3><div class="outcomes">${OUTCOMES.map(([k, l]) =>
+      `<button class="outcome ${report.outcome === k ? "active" : ""}" data-act="outcome" data-v="${k}"><div class="n">${o[k]}</div><div class="l">${l}</div></button>`).join("")}</div></section>` : ""}
+    <section class="card rep-section"><h3>Issues raised by pylint, ruff and bandit</h3>${issuesSection(g)}</section>
+    <section class="card rep-section" id="rep-problems"><h3>Problems</h3>${problemsSection(g)}</section>`;
+}
+
+function rerenderProblems() {
+  $("#rep-problems").innerHTML = `<h3>Problems</h3>${problemsSection(report.g)}`;
+}
+
+async function loadProblemDetail(id) {
+  if (report.cache[id]) return;
+  try { report.cache[id] = await store.get(id); } catch (e) { report.cache[id] = { error: e.message }; }
+  const el = $(`#pd-${id}`);
+  if (el) el.innerHTML = problemDetailHtml(report.cache[id]);
+}
+
+function problemDetailHtml(run) {
+  if (run.error) return `<span class="err">${esc(run.error)}</span>`;
+  const cards = SLOTS.map(s => {
+    const r = run.slots[s], m = run.models[s];
+    if (!r || !m) return `<div class="card ${s}"><div class="tag"><span class="dot">${s.toUpperCase()}</span>not loaded for this problem</div></div>`;
+    const mt = r.metrics || {};
+    return `<div class="card ${s}">
+      <div class="out-head"><div class="tag"><span class="dot">${s.toUpperCase()}</span>${esc(m.label || m.repo)}</div>
+        <span class="pill ${r.tests ? (r.tests.all_passed ? "done" : "error") : ""}">${r.tests ? (r.tests.all_passed ? "passed" : "failed") : esc(r.state)}</span></div>
+      <div class="live"><span>tokens <b>${mt.new_tokens ?? "–"}</b></span><span>decode <b>${fmt(mt.decode_tps)}</b> tok/s</span>
+        <span>TTFT <b>${mt.ttft_s != null ? (mt.ttft_s * 1000).toFixed(0) + " ms" : "–"}</b></span><span>total <b>${fmt(mt.total_s)} s</b></span>${mt.stopped ? `<span class="pill error">stopped</span>` : ""}</div>
+      <div class="output" style="height:auto;max-height:420px;margin-top:10px">${r.text ? renderMd(r.text) : '<span class="placeholder">No output</span>'}</div>
+      <div class="tests">${testsHtml(r.tests, true)}</div>
+      <div class="quality">${qualityHtml(r.quality, true)}</div>
+      ${r.tests && r.tests.code ? `<details class="adv"><summary>Code that was tested</summary><pre class="code-view"><code class="hljs">${highlight(r.tests.code, "python")}</code></pre></details>` : ""}
+    </div>`;
+  }).join("");
+  return `<div class="btns" style="margin:0 0 10px"><button class="small" data-act="reuse" data-v="${run.id}">Load this task into the prompt</button></div>
+    <details class="adv" style="margin:0 0 10px"><summary>Prompt</summary><pre class="code-view" style="white-space:pre-wrap">${esc(run.prompt || "")}</pre></details>
+    <div class="grid2">${cards}</div>`;
+}
+
+async function onReportClick(e) {
+  const el = e.target.closest("[data-act]");
+  if (!el || !report) return;
+  const act = el.dataset.act, v = el.dataset.v;
+  if (act === "close") return $("#run-dialog").close();
+  if (act === "csv") return exportReportCsv();
+  if (act === "delete") return deleteGroup();
+  if (act === "reuse") return reuseRun(report.cache[+v]);
+  if (act === "outcome") { report.outcome = report.outcome === v ? "all" : v; renderReport(); $("#rep-problems").scrollIntoView({ behavior: "smooth" }); return; }
+  if (act === "tool") { report.tool = v; renderReport(); return; }
+  if (act === "all-issues") { report.showAllIssues = true; renderReport(); return; }
+  if (act === "issue") { report.issue = report.issue === v ? null : v; renderReport(); if (report.issue) $("#rep-problems").scrollIntoView({ behavior: "smooth" }); return; }
+  if (act === "clear-issue") { report.issue = null; renderReport(); return; }
+  if (act === "problem") {
+    const id = +v;
+    report.expanded.has(id) ? report.expanded.delete(id) : report.expanded.add(id);
+    rerenderProblems();
+    if (report.expanded.has(id)) loadProblemDetail(id);
+  }
+}
+
+function onReportInput(e) {
+  const el = e.target;
+  if (!report || !el.dataset) return;
+  if (el.dataset.act === "filter") { report.outcome = el.value; renderReport(); }
+  if (el.dataset.act === "search") {
+    report.query = el.value; const pos = el.selectionStart;
+    rerenderProblems();
+    const box = $('#rep-problems [data-act="search"]'); box.focus(); box.setSelectionRange(pos, pos);
+  }
+}
+
+function exportReportCsv() {
+  const f = ["pass", "ran", "tests_passed", "tests_total", "pylint", "ruff", "syntax_error", "cc", "mi", "sloc", "bandit", "decode_tps", "ttft_s", "tokens", "total_s", "peak_mem"];
+  csvDownload(`quantbench_${report.g.key}_${Date.now()}.csv`, ["task", ...SLOTS.flatMap(s => f.map(x => `${s}_${x}`)), ...SLOTS.map(s => `${s}_issues`), "similarity"],
+    report.g.rows.map(r => [r.task, ...SLOTS.flatMap(s => f.map(x => r[s] ? r[s][x] : null)), ...SLOTS.map(s => r[s] ? r[s].issue_keys.join(" ") : null), r.similarity]));
+}
+
+async function deleteGroup() {
+  const g = report.g;
+  if (!confirm(`Delete "${g.label}" (${g.problems} problem${g.problems === 1 ? "" : "s"}) from the history?`)) return;
+  try {
+    await store.deleteGroup(g.key);
+    $("#run-dialog").close(); loadHistory();
+  } catch (e) { toast(e.message); }
+}
+
+async function reuseRun(run) {
+  if (!run || running || batch?.active) return;
+  if (!CONFIG) return toast("Connect a GPU backend first to rerun this task");
+  $("#run-dialog").close();
+  $("#source").value = run.source in CONFIG.benchmarks || run.source === "builtin" ? run.source : "builtin";
+  await selectSource($("#source").value);
+  if (run.task_index != null) await selectProblem(run.task_index);
+  $("#prompt").value = run.prompt; $("#system").value = run.system;
+  $("#max-tokens").value = run.config.max_new_tokens; $("#temperature").value = run.config.temperature; $("#mode").value = run.config.mode;
+  if (run.grader && run.grader.tests) $("#tests").value = run.grader.tests.join("\n");
+  if (run.task === "Custom prompt") task = { ...task, title: "Custom prompt" };
+  $("#prompt").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// ------------------------------------------------------------ batch evaluation
+async function runBatch() {
+  const src = $("#source").value, list = listings[src];
+  if (!list) return;
+  const start = Math.max(0, Math.min(+$("#batch-start").value || 0, list.length - 1));
+  const n = Math.max(1, Math.min(+$("#batch-n").value || 1, list.length - start));
+  batch = { active: true, stop: false, src, start, n, rows: [], id: `b${Date.now()}`,
+            label: `${CONFIG.benchmarks[src].name} #${start}–#${start + n - 1} · ${new Date().toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`, labels: { a: slotLabel("a"), b: slotLabel("b") },
+            config: { max_new_tokens: +$("#max-tokens").value, temperature: +$("#temperature").value, mode: $("#mode").value }, started: new Date().toISOString() };
+  $("#batch").hidden = false; renderBatch(); updateButtons();
+  $("#batch").scrollIntoView({ behavior: "smooth", block: "start" });
+  for (let k = 0; k < n && !batch.stop; k++) {
+    await selectProblem(start + k);
+    batch.current = task.title; renderBatch();
+    batch.config.max_new_tokens = +$("#max-tokens").value;
+    const r = await runOnce({ batchId: batch.id, batchLabel: batch.label });
+    if (!r || batch.stop) break;   // don't record a run that was cut short
+    batch.rows.push({ task_id: task.title, index: start + k, ...r });
+    renderBatch();
+  }
+  batch.active = false; batch.current = null;
+  renderBatch(); updateButtons();
+}
+
+function renderBatch() {
+  if (!batch) return;
+  const rows = batch.rows, done = rows.length;
+  $("#batch-title").textContent = `${CONFIG.benchmarks[batch.src].name}: problems #${batch.start}–#${batch.start + batch.n - 1}` +
+    (batch.active ? ` · running ${batch.current || ""}` : batch.stop ? " · stopped" : " · finished");
+  $("#batch-progress").textContent = `${done} / ${batch.n}`;
+  $("#batch-bar-fill").style.width = (100 * done / batch.n) + "%";
+  $("#bh-a").textContent = "A · " + batch.labels.a; $("#bh-b").textContent = "B · " + batch.labels.b;
+  const col = (s, f) => rows.map(r => r[s] ? f(r[s]) : null);
+  const passRate = s => { const v = col(s, x => x.pass).filter(x => x != null); return v.length ? `${(100 * v.filter(Boolean).length / v.length).toFixed(1)}% (${v.filter(Boolean).length}/${v.length})` : "–"; };
+  const metrics = [
+    ["pass@1", passRate],
+    ["Decode speed (tok/s)", s => fmt(mean(col(s, x => x.decode_tps)))],
+    ["Time to first token (ms)", s => fmt(mean(col(s, x => x.ttft_ms)), 0)],
+    ["Tokens generated", s => fmt(mean(col(s, x => x.tokens)), 0)],
+    ["Pylint score (0–10)", s => fmt(mean(col(s, x => x.pylint)), 2)],
+    ["Ruff issues", s => fmt(mean(col(s, x => x.ruff)), 2)],
+    ["Cyclomatic complexity", s => fmt(mean(col(s, x => x.cc)), 2)],
+    ["Maintainability index", s => fmt(mean(col(s, x => x.mi)), 1)],
+    ["Bandit findings", s => fmt(mean(col(s, x => x.bandit)), 2)],
+  ];
+  const simv = mean(rows.map(r => r.similarity));
+  $("#batch-agg").innerHTML = metrics.map(([k, f]) => `<tr><td>${k}</td><td class="ca">${f("a")}</td><td class="cb">${f("b")}</td></tr>`).join("")
+    + `<tr><td>Output similarity A↔B</td><td colspan="2">${simv != null ? (simv * 100).toFixed(1) + "%" : "–"}</td></tr>`;
+  const pc = x => x == null || x.pass == null ? "<td>–</td>" : `<td class="${x.pass ? "pass" : "fail"}">${x.pass ? "✓" : "✗"}</td>`;
+  const tt = x => x && x.tests_total != null ? `${x.tests_passed}/${x.tests_total}` : "–";
+  $("#batch-rows").innerHTML = rows.slice().reverse().map(r => `<tr><td>${esc(r.task_id)}</td>${pc(r.a)}${pc(r.b)}<td>${tt(r.a)}</td><td>${tt(r.b)}</td>
+    <td class="ca">${fmt(r.a?.decode_tps)}</td><td class="cb">${fmt(r.b?.decode_tps)}</td><td>${fmt(r.a?.pylint, 1)}</td><td>${fmt(r.b?.pylint, 1)}</td>
+    <td>${r.a?.ruff ?? "–"}</td><td>${r.b?.ruff ?? "–"}</td><td>${r.similarity != null ? (r.similarity * 100).toFixed(0) + "%" : "–"}</td></tr>`).join("")
+    || `<tr><td colspan="12" style="color:var(--faint)">Waiting for the first problem…</td></tr>`;
+}
+
+function download(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function exportJson() {
+  if (!batch) return;
+  const meta = { benchmark: batch.src, started: batch.started, config: batch.config, models: { a: STATUS.slots.a, b: STATUS.slots.b } };
+  ["a", "b"].forEach(s => { if (meta.models[s]) meta.models[s] = { repo: meta.models[s].repo, precision: meta.models[s].precision, device: meta.models[s].device, info: meta.models[s].info }; });
+  download(`quantbench_${batch.src}_${Date.now()}.json`, JSON.stringify({ ...meta, rows: batch.rows }, null, 2), "application/json");
+}
+function exportCsv() {
+  if (!batch) return;
+  const fields = ["pass", "tests_passed", "tests_total", "decode_tps", "ttft_ms", "tokens", "total_s", "peak_mem_gb", "pylint", "ruff", "cc", "mi", "sloc", "bandit"];
+  const head = ["task_id", ...SLOTS.flatMap(s => fields.map(f => `${s}_${f}`)), "similarity"];
+  const cell = v => v == null ? "" : typeof v === "string" ? `"${v.replace(/"/g, '""')}"` : v;
+  const lines = batch.rows.map(r => [cell(r.task_id), ...SLOTS.flatMap(s => fields.map(f => cell(r[s] ? r[s][f] : null))), cell(r.similarity)].join(","));
+  download(`quantbench_${batch.src}_${Date.now()}.csv`, [head.join(","), ...lines].join("\n"), "text/csv");
+}
+
+// ------------------------------------------------------------ chart
+function drawChart() {
+  const c = $("#chart"), dpr = window.devicePixelRatio || 1;
+  const W = c.clientWidth, H = c.clientHeight;
+  if (c.width !== W * dpr || c.height !== H * dpr) { c.width = W * dpr; c.height = H * dpr; }
+  const g = c.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const css = getComputedStyle(document.documentElement);
+  const colors = { a: css.getPropertyValue("--a").trim(), b: css.getPropertyValue("--b").trim() };
+  const muted = css.getPropertyValue("--faint").trim(), grid = css.getPropertyValue("--border").trim();
+  const pts = SLOTS.map(s => (out[s] && out[s].points) || []);
+  const now = s => out[s] && out[s].state === "generating" ? (performance.now() - out[s].t0) / 1000 : 0;
+  const maxT = Math.max(1, ...pts.flat().map(p => p[0]), ...SLOTS.map(now));
+  const maxN = Math.max(16, ...pts.flat().map(p => p[1]));
+  const L = 44, R = 12, T = 10, B = 26, pw = W - L - R, ph = H - T - B;
+  const X = t => L + pw * t / maxT, Y = n => T + ph * (1 - n / maxN);
+  g.font = "11px Inter, sans-serif"; g.fillStyle = muted; g.strokeStyle = grid; g.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const n = maxN * i / 4, y = Y(n);
+    g.beginPath(); g.moveTo(L, y); g.lineTo(W - R, y); g.stroke();
+    g.textAlign = "right"; g.fillText(Math.round(n), L - 6, y + 4);
+    const t = maxT * i / 4;
+    g.textAlign = "center"; g.fillText(t.toFixed(1) + "s", X(t), H - 8);
+  }
+  SLOTS.forEach((s, k) => {
+    const p = pts[k]; if (p.length < 2) return;
+    g.strokeStyle = colors[s]; g.lineWidth = 2; g.lineJoin = "round"; g.beginPath();
+    p.forEach(([t, n], i) => i ? g.lineTo(X(t), Y(n)) : g.moveTo(X(t), Y(n)));
+    g.stroke();
+    const [lt, ln] = p[p.length - 1];
+    g.fillStyle = colors[s]; g.beginPath(); g.arc(X(lt), Y(ln), 3.5, 0, 7); g.fill();
+  });
+  $("#lg-a").textContent = "A · " + slotLabel("a"); $("#lg-b").textContent = "B · " + slotLabel("b");
+}
+
+// ------------------------------------------------------------ init
+let liveWired = false;
+
+async function buildLive() {
+  CONFIG = await getJson("/api/config");
+  STATUS = await getJson("/api/status");
+  $("#model-cards").innerHTML = SLOTS.map(modelCard).join("");
+  $("#out-cards").innerHTML = SLOTS.map(outCard).join("");
+  SLOTS.forEach(s => {
+    const root = $(`#m-${s}`);
+    F(root, "load").onclick = () => loadModel(s);
+    F(root, "unload").onclick = () => unloadModel(s);
+    F(root, "model").onchange = () => onModelChange(s);
+    F(root, "precision").onchange = () => updateEstimate(s);
+    F(root, "device").onchange = () => updateEstimate(s);
+    F(root, "custom").oninput = () => updateEstimate(s);
+    resetOut(s, false);
+  });
+  initSources();
+  await selectSource("builtin");
+  if (!liveWired) {
+    liveWired = true;
+    $("#go").onclick = () => runOnce();
+    $("#stop").onclick = stopAll;
+    $("#batch-go").onclick = runBatch;
+    $("#export-csv").onclick = exportCsv;
+    $("#export-json").onclick = exportJson;
+    $("#prompt").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !$("#go").disabled) runOnce(); });
+    window.addEventListener("resize", drawChart);
+    setInterval(poll, 700);
+  }
+  await poll();
+  renderKpis(); drawChart();
+}
+
+function wireHistory() {
+  $("#history").onclick = e => { const tr = e.target.closest("tr[data-key]"); if (tr) openGroup(tr.dataset.key); };
+  $("#history").onkeydown = e => { const tr = e.target.closest("tr[data-key]"); if (tr && e.key === "Enter") openGroup(tr.dataset.key); };
+  $("#history-filter").onchange = renderHistory;
+  $("#history-csv").onclick = exportHistoryCsv;
+  $("#rd-body").addEventListener("click", onReportClick);
+  $("#rd-body").addEventListener("change", e => { if (e.target.dataset.act === "filter") onReportInput(e); });
+  $("#rd-body").addEventListener("input", e => { if (e.target.dataset.act === "search") onReportInput(e); });
+  $("#run-dialog").onclick = e => { if (e.target.id === "run-dialog") e.target.close(); };   // click on backdrop
+}
+
+// ---------- hosted: GPU backend connection
+function setConnState(state, detail) {
+  const pill = $("#conn-pill"), labels = { connected: "connected", connecting: "connecting…", lost: "connection lost", off: "not connected", error: "could not connect" };
+  pill.textContent = labels[state]; pill.className = "pill " + ({ connected: "ready", connecting: "loading", lost: "error", error: "error" }[state] || "");
+  if (state === "connected" && BACKEND) {
+    const local = isLocalUrl(BACKEND.url);
+    $("#conn-info").textContent = `Connected to ${local ? "your computer" : BACKEND.url.replace(/^https?:\/\//, "")} · ` +
+      (BACKEND.accelerator || STATUS.gpus.map(g => `${g.name} (${gb(g.total)})`).join(", ") || "no GPU detected") + ". Models load and run there." +
+      (BACKEND.accelerator && /^(CPU only|Apple)/.test(BACKEND.accelerator) ? " No NVIDIA GPU: use small models with optimum-quanto INT8 / INT4." : "");
+  } else if (state === "lost") {
+    $("#conn-info").textContent = "Lost contact with your backend. If your Colab session ended or you stopped connect.py, start it again and click the new link. Your saved runs are not affected.";
+  } else if (detail) $("#conn-info").textContent = detail;
+  $("#conn-help").open = state !== "connected";
+  $("#live").hidden = !CONFIG;
+}
+
+async function connectBackend(url, key, quiet) {
+  url = (url || "").trim().replace(/\/+$/, ""); key = (key || "").trim();
+  if (!url) return;
+  if (!/^https?:\/\//.test(url)) url = (isLocalUrl("http://" + url) ? "http://" : "https://") + url;
+  setConnState("connecting");
+  const prev = BACKEND;
+  BACKEND = { url, key };
+  try {
+    const h = await (await fetch(url + "/api/health")).json();
+    if (h.app !== "quantbench") throw new Error("That URL is not a QuantBench backend");
+    await getJson("/api/status");   // checks the key
+    BACKEND.accelerator = h.accelerator;
+  } catch (e) {
+    BACKEND = prev;
+    const why = e.message !== "Failed to fetch" ? e.message
+      : isLocalUrl(url) ? "nothing answered on your computer, or the browser blocked it. Is connect.py still running? Open the http://127.0.0.1 link it printed instead of this page."
+      : "the backend is not reachable (is the Colab cell or connect.py still running?)";
+    setConnState(prev ? "connected" : "error", `Could not connect to ${url}: ${why}`);
+    if (!quiet) toast("Could not connect: " + e.message);
+    return false;
+  }
+  try { localStorage.setItem("qb.backend", JSON.stringify({ url, key })); } catch {}
+  $("#conn-url").value = url; $("#conn-key").value = key;
+  await buildLive();
+  setConnState("connected");
+  return true;
+}
+
+function disconnectBackend() {
+  BACKEND = null; CONFIG = null; STATUS = { slots: {}, gpus: [] };
+  try { localStorage.removeItem("qb.backend"); } catch {}
+  $("#gpus").innerHTML = "";
+  setConnState("off", "Disconnected. Your saved runs are still below.");
+}
+
+const isLocalUrl = url => /^http:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(url);
+
+function showWhere(where) {
+  document.querySelectorAll("#connect [data-where]").forEach(b => b.setAttribute("aria-selected", b.dataset.where === where));
+  document.querySelectorAll("#connect [data-pane]").forEach(p => (p.hidden = p.dataset.pane !== where));
+  try { localStorage.setItem("qb.where", where); } catch {}
+}
+
+function takeBackendFromLink() {
+  // Links printed by connect.py look like https://site/#backend=<url>&key=<key>. The fragment never reaches a server.
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.get("backend")) {
+    try { localStorage.setItem("qb.backend", JSON.stringify({ url: p.get("backend"), key: p.get("key") || "" })); } catch {}
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+}
+
+function savedBackend() {
+  try { return JSON.parse(localStorage.getItem("qb.backend") || "null"); } catch { return null; }
+}
+
+// ---------- hosted: sign-in (Supabase Auth)
+function loadScript(src) {
+  return new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("Could not load " + src)); document.head.appendChild(el); });
+}
+
+function authMsg(text, isError) { const el = $("#auth-msg"); el.textContent = text; el.style.color = isError ? "var(--bad)" : "var(--muted)"; }
+
+async function authAction(kind) {
+  const email = $("#auth-email").value.trim(), password = $("#auth-pass").value;
+  if (!email) return authMsg("Enter your email", true);
+  authMsg("…");
+  let res;
+  if (kind === "magic") res = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+  else if (!password) return authMsg("Enter a password (or use the email link)", true);
+  else if (kind === "signup") res = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+  else res = await sb.auth.signInWithPassword({ email, password });
+  if (res.error) return authMsg(res.error.message, true);
+  if (kind === "magic") return authMsg("Check your inbox (and spam folder) for a sign-in link. Open it in this same browser; it works once, for one hour.");
+  if (kind === "signup" && !res.data.session) return authMsg("Account created. Confirm it from the email we sent, then sign in.");
+}
+
+async function onSignedIn(user) {
+  if (me && me.id === user.id) return;
+  me = user;
+  const { data: allowed, error } = await sb.rpc("is_allowed");
+  if (error || !allowed) {
+    $("#app").hidden = true; $("#auth-screen").hidden = false;
+    authMsg(error ? "Could not check access: " + error.message : `Signed in as ${user.email}, but this account has not been approved yet. Ask the site owner to add it.`, true);
+    me = null;
+    return;
+  }
+  $("#auth-screen").hidden = true; $("#app").hidden = false;
+  $("#userbar").hidden = false; $("#user-email").textContent = user.email;
+  $("#history-filter").insertAdjacentHTML("beforeend", `<option value="mine">My runs</option>`);
+  loadHistory();
+  const saved = savedBackend();
+  if (saved) { $("#conn-url").value = saved.url; $("#conn-key").value = saved.key; await connectBackend(saved.url, saved.key, true); }
+  else setConnState("off");
+}
+
+
+// A sign-in link that failed (expired, already used, or not allowed) comes back as
+// #error=...&error_description=... ; show that instead of a silent sign-in screen.
+function linkError() {
+  const p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  const msg = p.get("error_description") || p.get("error");
+  if (!msg) return null;
+  history.replaceState(null, "", location.pathname);
+  const code = p.get("error_code") || "";
+  return code === "otp_expired" ? "That sign-in link has expired or was already used. Request a new one (links work once, for one hour)."
+    : `Sign-in link failed: ${msg.replace(/\+/g, " ")}`;
+}
+
+async function initHosted() {
+  const failedLink = linkError();
+  takeBackendFromLink();
+  $("#app").hidden = true; $("#connect").hidden = false; $("#live").hidden = true;
+  const site = QB.site || location.origin, snippets = {
+    colab: `!curl -fsSL ${site}/backend.tar.gz | tar xz -C /content\n%run /content/quantbench/connect.py --site ${site}`,
+    unix: `curl -fsSL ${site}/backend.tar.gz | tar xz\npython3 quantbench/connect.py --site ${site} --local`,
+    windows: `curl.exe -fsSLo quantbench.tar.gz ${site}/backend.tar.gz; tar -xzf quantbench.tar.gz\npython quantbench\\connect.py --site ${site} --local`,
+  };
+  Object.entries(snippets).forEach(([k, text]) => {
+    $(`#connect [data-snippet="${k}"]`).textContent = text;
+    $(`#connect [data-copy="${k}"]`).onclick = () => navigator.clipboard.writeText(text).then(() => toast("Copied"), () => toast("Copy failed, select the text instead"));
+  });
+  document.querySelectorAll("#connect [data-where]").forEach(b => (b.onclick = () => showWhere(b.dataset.where)));
+  let where = null;
+  try { where = localStorage.getItem("qb.where"); } catch {}
+  if (where) showWhere(where);
+  $("#conn-go").onclick = () => connectBackend($("#conn-url").value, $("#conn-key").value);
+  $("#conn-off").onclick = disconnectBackend;
+  await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js");
+  sb = window.supabase.createClient(QB.supabaseUrl, QB.supabaseAnonKey);
+  $("#auth-signin").onclick = () => authAction("signin");
+  $("#auth-signup").onclick = () => authAction("signup");
+  $("#auth-magic").onclick = () => authAction("magic");
+  $("#auth-pass").addEventListener("keydown", e => { if (e.key === "Enter") authAction("signin"); });
+  $("#sign-out").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  sb.auth.onAuthStateChange((_event, session) => { if (session?.user) setTimeout(() => onSignedIn(session.user)); });
+  const { data } = await sb.auth.getSession();
+  if (data.session?.user) await onSignedIn(data.session.user);
+  else { $("#auth-screen").hidden = false; if (failedLink) authMsg(failedLink, true); }
+}
+
+async function init() {
+  wireHistory();
+  if (HOSTED) return initHosted();
+  await buildLive();
+  loadHistory();
+}
+init().catch(e => toast("Startup failed: " + e.message));
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# local run history (SQLite) and anything a run writes
+runs/
+*.sqlite
+# built website (deploy/build_site.py output; includes the Vercel project link)
+deploy/quantbench/
+.vercel/
+# Python / tool caches
+__pycache__/
+*.pyc
+.ruff_cache/
+.venv/
