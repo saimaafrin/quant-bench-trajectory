@@ -186,6 +186,36 @@ def no_grad(precision: str):
     return torch.no_grad() if precision.startswith("quanto") else torch.inference_mode()
 
 
+SANITY_TEXT = ("The quick brown fox jumps over the lazy dog. Paris is the capital of France, "
+               "and Berlin is the capital of Germany. Water boils at one hundred degrees Celsius.")
+SANITY_MAX_PPL = 200   # working instruct models score roughly 3-30 on this text; a broken load scores in the thousands
+
+
+def tie_weights_if_needed(model, log):
+    """Models with tie_word_embeddings share one matrix between the input embeddings and the output
+    layer. Some transformers versions fail to tie them on load and leave the output layer randomly
+    initialised, which turns every reply into random multilingual tokens."""
+    if not getattr(model.config, "tie_word_embeddings", False):
+        return
+    emb, head = model.get_input_embeddings(), model.get_output_embeddings()
+    if head is None or emb is None or head.weight is emb.weight or head.weight.data_ptr() == emb.weight.data_ptr():
+        return
+    log("Output layer was not tied to the input embeddings after loading (a transformers loading bug); tying it")
+    try:
+        model.tie_weights()
+    except Exception:  # noqa: BLE001
+        pass
+    if model.get_output_embeddings().weight.data_ptr() != emb.weight.data_ptr():
+        model.get_output_embeddings().weight = emb.weight
+
+
+def sanity_perplexity(model, tok, device, precision) -> float:
+    ids = tok(SANITY_TEXT, return_tensors="pt").to(device)
+    with no_grad(precision):
+        loss = model(**ids, labels=ids["input_ids"]).loss.float().item()
+    return float("nan") if loss != loss else float(min(torch.exp(torch.tensor(loss)).item(), 1e9))
+
+
 def dir_size(path: Path) -> int:
     if not path.exists():
         return 0
@@ -209,6 +239,7 @@ class Slot:
         self.model = self.tok = None
         self.info = {}
         self.error = None
+        self.warning = None
         self.blob_dir = None
         self.dl_total = 0
         self.t_start = time.time()
@@ -225,7 +256,7 @@ class Slot:
         return {
             "name": self.name, "state": self.state, "stage": self.stage, "log": self.log[-30:],
             "repo": self.repo, "precision": self.precision, "device": self.device,
-            "info": self.info, "error": self.error, "defaults": self.defaults,
+            "info": self.info, "error": self.error or self.warning, "warning": self.warning, "defaults": self.defaults,
             "download": {"done": dl_done, "total": self.dl_total},
             "gpu_alloc": device_alloc(self.device or ""),
             "elapsed": round(time.time() - self.t_start, 1) if self.state == "loading" else None,
@@ -259,6 +290,14 @@ class Slot:
                 model = AutoModelForCausalLM.from_pretrained(local, **kwargs).eval()
             load_s = time.perf_counter() - t
             self.add_log(f"Weights loaded in {load_s:.1f}s")
+            tie_weights_if_needed(model, self.add_log)
+            ppl = sanity_perplexity(model, tok, device, precision)
+            self.add_log(f"Sanity check: perplexity {ppl:.1f} on a plain English sentence" if ppl == ppl else "Sanity check: NaN outputs")
+            if not ppl < SANITY_MAX_PPL:
+                self.warning = (f"Loaded, but this model's outputs look broken on this machine (sanity perplexity "
+                                f"{'NaN' if ppl != ppl else f'{ppl:.0f}'}; a working model scores under {SANITY_MAX_PPL}). "
+                                "Expect garbage text. Try another precision, or restart the backend.")
+                self.add_log("WARNING: " + self.warning)
 
             self.stage = "warmup"
             self.add_log("Warm-up generation (compiles kernels so the first real run is fair)")
@@ -267,11 +306,6 @@ class Slot:
                 model.generate(**ids, max_new_tokens=8, do_sample=False,
                                pad_token_id=pad_id(tok))
 
-            with no_grad(precision):   # numeric sanity check: FP16 overflow shows up as NaN logits
-                finite = bool(torch.isfinite(model(**ids).logits[0, -1]).all())
-            if not finite:
-                self.add_log("WARNING: this model produces NaN outputs at this precision on this machine "
-                             "(FP16 overflow); expect garbage text. Try BF16, FP32 or a 4/8-bit option.")
             self.model, self.tok = model, tok
             self.info = {
                 "load_s": round(load_s, 2),
@@ -281,7 +315,7 @@ class Slot:
                 "disk": self.dl_total,
                 "quant": self._describe_quant(model, precision),
                 "dtype": str(next(model.parameters()).dtype).replace("torch.", ""),
-                "attn": getattr(model.config, "_attn_implementation", None), "finite": finite,
+                "attn": getattr(model.config, "_attn_implementation", None), "sanity_ppl": round(ppl, 2) if ppl == ppl else None,
                 "versions": VERSIONS,
             }
             self.stage = "ready"
