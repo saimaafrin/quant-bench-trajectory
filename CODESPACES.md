@@ -24,8 +24,9 @@ Reopen it from <https://github.com/codespaces>; the server starts by itself in a
 
 1. **Load models**: click **Load model** on both cards. Defaults: A = FP32 (unquantized), B = INT8 weights
    (optimum-quanto). The models are already on disk, so each load takes 10-30 s; watch the **Load log**
-   (tokenizer, weights, sanity check, warm-up). The card shows the weights' footprint: about 1.96 GB
-   against 0.56 GB.
+   (tokenizer, weights, sanity check, warm-up). The card shows the weights' footprint: about 1.98 GB
+   against 0.90 GB. INT8 is not a quarter of FP32 here because quanto converts only the linear layers;
+   the embedding table (136M of the 494M parameters, shared with the output layer) stays in FP32.
 2. **Coding task**: start with a built-in task (they have unit tests), then try **HumanEval** (164
    problems; downloads from the Hub on first use). **Generate ▶** streams both answers; under each you get
    the tests and the static analysis; the **Comparison** block gives memory saving, speed ratio, pass/fail
@@ -34,11 +35,16 @@ Reopen it from <https://github.com/codespaces>; the server starts by itself in a
    model, every problem's outcome (both pass / only A / only B / both fail), and CSV export.
 4. **Tool-calling agents** (the second page, top left): the same two slots run as agents on BFCL
    multi-turn tasks; the trajectories of A, B and the reference are shown side by side, with the first
-   step where they diverge.
+   step where they diverge. On CPU, start with **BFCL single-turn** (a few seconds per task; the 0.5B models
+   pass most of them), then move to multi-turn (about a minute per task): the 0.5B models fail most of
+   those, and A and B often fail the same way, so look for tasks where they part (in our run,
+   `multi_turn_base_2` split at its first call: `mkdir('TeamNotes')` against `mkdir('team_notes')`).
 
 On a codespace (4 cores, no GPU) expect **3-8 tokens per second** per model, so keep *Max new tokens* at
 256-512 and run batches of 10-20 problems, not the whole benchmark. The 1.5B models fit too (about 6 GB
-in FP32) but are slow; anything larger needs a GPU.
+in FP32) but are slow; anything larger needs a GPU. Slot B is the slower one: on a CPU, quanto's INT8
+weights save memory, not time, and B decodes about 2.5 times slower than A (60 against 24 tokens per
+second on four Apple M4 cores). That is a result to discuss, not a fault.
 
 ## If something goes wrong
 
