@@ -438,7 +438,8 @@ def build_prompt(tok, system: str, prompt: str) -> str:
 
 
 def run_generation(slot: Slot, req: "GenRequest", events: queue.Queue):
-    if not slot.busy.acquire(blocking=False):
+    # A short wait: the card says "ready" a moment before the loading thread releases the lock.
+    if not slot.busy.acquire(timeout=3):
         events.put({"slot": slot.name, "type": "error", "msg": "Model is busy"})
         return
     try:
@@ -793,7 +794,7 @@ def create_app(args) -> FastAPI:
         events: queue.Queue = queue.Queue()
 
         def run_one(slot: Slot):
-            if not slot.busy.acquire(blocking=False):
+            if not slot.busy.acquire(timeout=3):
                 events.put({"slot": slot.name, "type": "error", "msg": "Model is busy"})
                 return
             try:
