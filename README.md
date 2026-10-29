@@ -1,25 +1,39 @@
-# QuantBench Live
+# QuantBench
 
 Web dashboard that loads a full-precision LLM and a quantized copy of the same Hugging Face
 model side by side, sends both the same coding task (built-in, HumanEval or BigCodeBench), and
 streams the answers live. Each answer is then unit-tested and statically analyzed, so you can
 compare speed, memory, correctness and code quality.
 
-## Run
+## Run it in GitHub Codespaces (the class setup)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/saimaafrin/quant-bench-trajectory?quickstart=1)
+
+Click the badge (or **Code → Codespaces → Create codespace on main** on this page). The first start
+installs PyTorch, the packages and the two default 0.5B models (about four minutes); then QuantBench
+opens in a browser tab. Nothing to install on your laptop, no account on the site, no key: the server,
+the models and the generated code all run inside your codespace, and only you can reach its port.
+Later starts take seconds. See [`CODESPACES.md`](CODESPACES.md) for what to click and what to expect.
+
+Codespaces have no GPU, so the defaults are **Qwen2.5-Coder-0.5B-Instruct in FP32** (slot A) against
+**the same model in optimum-quanto INT8** (slot B): about 2 GB against 0.9 GB of weights, a few tokens
+per second each. That is enough to see every effect the page measures; bigger models need a GPU.
+
+## Run it on your own machine
+
+Python 3.10 or newer (3.12 recommended) and about 6 GB of free RAM for the defaults:
 
 ```bash
-./run.sh                      # uses the bigcodebench-gen conda env, serves on 127.0.0.1:8000
-./run.sh --port 8000 --model Qwen/Qwen2.5-Coder-7B-Instruct --quant bnb-8bit
-PYTHON=/path/to/python ./run.sh   # another env needs: torch transformers accelerate bitsandbytes
-                                  # fastapi uvicorn pandas ruff pylint radon bandit
+python3 -m venv .venv && source .venv/bin/activate
+pip install torch --index-url https://download.pytorch.org/whl/cpu   # no NVIDIA GPU: the CPU build (small)
+pip install -r requirements.txt
+./run.sh                      # http://127.0.0.1:8000
+./run.sh --port 8000 --model Qwen/Qwen2.5-Coder-1.5B-Instruct --quant bnb-4bit   # on an NVIDIA GPU, with bitsandbytes
 ```
 
-The server runs on the GPU machine. From your laptop, forward the port and open the page:
-
-```bash
-ssh -L 8000:localhost:8000 <user>@<gpu-host>
-# then browse to http://localhost:8000
-```
+With an NVIDIA GPU install the CUDA build of PyTorch instead (`pip install torch`) plus `bitsandbytes`,
+and every precision option works. On a remote GPU server, forward the port
+(`ssh -L 8000:localhost:8000 <user>@<gpu-host>`) and browse to http://localhost:8000.
 
 ## What the page shows
 
@@ -49,7 +63,7 @@ ssh -L 8000:localhost:8000 <user>@<gpu-host>
      Expand "findings" to see every message with its line number.
 4. **Comparison**: memory saving, speed ratio, TTFT, tests, pylint/ruff, output similarity, and a
    tokens-over-time chart.
-5. **Run history**: everything you generate is saved on the server in `runs/history.sqlite`, so
+5. **Run history**: everything you generate is saved in `runs/history.sqlite` (inside the codespace), so
    it survives page reloads and server restarts. Each **run** is one row: a batch is one run, and
    a single Generate is a run of one problem. The row shows pass@1, mean pylint, ruff issues per
    problem and tok/s for A and B. Click a run to open its report:
@@ -73,60 +87,9 @@ ssh -L 8000:localhost:8000 <user>@<gpu-host>
    problems CSV** in a report saves one line per problem. **Delete run** removes a run. Use
    `--db path.sqlite` to keep a separate history per experiment.
 
-## Hosted version (Vercel + Supabase + each user's own GPU)
-
-The same page can be published as a website where people sign in, connect their **own** hardware
-(a free Google Colab GPU or their own computer) and run comparisons in parallel. All runs go to one shared
-history.
-
-```
-browser ──▶ Vercel (static site, deploy/quantbench) ──▶ Supabase (logins + shared run history)
-   │
-   └──▶ the user's own backend running connect.py (server.py + random access key):
-        Colab or a remote GPU server  → reached through a Cloudflare quick tunnel
-        the user's own laptop/desktop → reached directly at http://127.0.0.1 (--local)
-```
-
-- **Setup (once):**
-  1. Create a Supabase project and run `deploy/supabase.sql` in its SQL editor.
-  2. In **Authentication → URL Configuration**, set the Site URL and add the Vercel URL to the
-     redirect URLs.
-  3. Build and deploy:
-     `python deploy/build_site.py --supabase-url … --supabase-anon-key … --site https://<site>`,
-     then `npx vercel deploy deploy/quantbench --prod --scope <team>`.
-- **Access:** only emails in `public.allowed_emails` can use the site. Add `'*'` to that table to
-  allow anyone who signs up. Users can delete only their own runs.
-- **Connecting a backend:** the connect card has two tabs.
-  - **Google Colab:** a two-line cell downloads the backend from the site, starts it with a
-    random key, opens a tunnel, and prints an **Open QuantBench** link that carries the backend
-    URL and key in the URL fragment (never sent to a server).
-  - **My own computer** (macOS, Linux, Windows; Python 3.10+):
-    `curl -fsSL https://<site>/backend.tar.gz | tar xz` then
-    `python3 quantbench/connect.py --site https://<site> --local`. It installs missing packages,
-    starts the backend on 127.0.0.1 (no tunnel) and opens the site already connected. It runs in
-    the foreground; Ctrl+C stops it (`--detach` keeps it in the background, `--stop` ends it).
-    Chrome may ask to allow access to local network devices. Safari can block an https page from
-    calling http://127.0.0.1; use another browser, or drop `--local`.
-  - **A remote GPU server** (e.g. ams1 over SSH): the same command without `--local` uses the
-    tunnel and prints a link you can open anywhere.
-- **Hardware:** with an NVIDIA GPU every option works. On Apple Silicon (`mps`) or CPU-only
-  machines bitsandbytes is unavailable (it is greyed out in the UI), and connect.py installs
-  optimum-quanto instead: `quanto-int8` / `quanto-int4`. Use 0.5B–1.5B models there. Measured on
-  CPU with Qwen2.5-Coder-0.5B-Instruct: FP32 1.98 GB, quanto INT8 0.90 GB, INT4 0.75 GB (the
-  embeddings stay in full precision). INT4 on CPU compiles a kernel on first load (needs a C++
-  compiler) and decodes much more slowly than INT8, so INT8 is the default there.
-- **Limits:**
-  - Free Colab has one 16 GB T4: about 3B models in FP16 next to their 4-bit version, or 7B in
-    8-bit/4-bit. 7B in FP16 needs a larger GPU.
-  - Sessions end when idle; rerun the cell to reconnect.
-  - Google's Colab policy restricts web services on free runtimes, so sessions may be stopped.
-  - Generated code runs on the user's own backend, never on Vercel or Supabase.
-- **Local mode is unchanged:** `./run.sh` serves the same page with no login, history in
-  `runs/history.sqlite`.
-
 ## Agent page: tool-calling trajectories (`/agent`)
 
-A second page (`static/agent.html`, served at `/agent` locally and on the hosted site) runs the two
+A second page (`static/agent.html`, served at `/agent`) runs the two
 loaded models as **tool-calling agents** on the same task and shows their trajectories side by side
 with the benchmark's reference trajectory. The code-generation page is unchanged; both pages share
 the backend, the loaded models and the connection.
@@ -170,8 +133,6 @@ the backend, the loaded models and the connection.
   Qwen2.5-Coder). Code models are not tuned for tool calling and tend to repeat the same call; the
   page warns when one is selected. Tool prompts are long (5–10k tokens per step), so leave memory for
   the KV cache.
-- **Hosted:** run the `agent_runs` part of `deploy/supabase.sql` once. Backends started before this
-  page existed need to be restarted with the latest `connect.py`.
 
 ## Models in the dropdown
 
@@ -222,7 +183,7 @@ NF4 uses 5.4 GB at ~29 tok/s.
 - `analysis.py`: ruff, pylint, radon, bandit
 - `test_runner.py`: executes code + tests in an isolated subprocess
 - `presets.py`: built-in tasks
-- `static/index.html`: the single-page UI (local and hosted mode)
+- `static/index.html`: the single-page UI
 - `agent_bench.py`, `agent_benchmarks.py`, `agent_runner.py`, `tool_calls.py`, `static/agent.html`, `bfcl/`, `toolhop/`: the agent page
-- `connect.py`: starts a backend (plus a tunnel unless `--local`) on Colab, a server or a laptop and prints a link to the hosted site
-- `deploy/supabase.sql`, `deploy/build_site.py`: hosted setup and static site build
+- `.devcontainer/`: the GitHub Codespaces setup (packages, the two default models, the server started on port 8000)
+- `requirements.txt`, `run.sh`: the packages and a one-line start

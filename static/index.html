@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script src="config.js"></script>
 <style>
 :root {
   --bg: #0d1117; --panel: #151b23; --panel-2: #1c2430; --border: #2a3441; --text: #e6edf3;
@@ -166,37 +165,11 @@ tr.expand > td { background: var(--bg); padding: 12px; white-space: normal; }
 tr.expanded td { background: var(--panel-2); }
 .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
 .toolbar select, .toolbar input { width: auto; padding: 6px 10px; }
-.userbar { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
-.auth { max-width: 440px; margin: 10vh auto 0; }
-.auth h1 { margin-bottom: 4px; }
-.auth label { margin-top: 12px; }
-#auth-msg { margin-top: 12px; font-size: 13px; min-height: 18px; }
-#connect { margin-top: 20px; }
-#connect ol { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: 13px; line-height: 1.7; }
-#connect ol b, #connect ol a { color: var(--text); }
-.snippet { position: relative; margin: 6px 0; }
-.snippet pre { white-space: pre-wrap; word-break: break-all; padding-right: 70px; }
-.snippet button { position: absolute; top: 6px; right: 6px; }
-.conn-tabs { display: flex; gap: 6px; margin: 10px 0 2px; flex-wrap: wrap; }
-.conn-tabs button[aria-selected="true"] { background: var(--panel-2); color: var(--text); border-color: #58a6ff; }
-.conn-note { color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.6; }
-.conn-note code, #connect ol code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; color: var(--text); }
-.os-label { font-size: 11px; color: var(--muted); margin-top: 8px; }
-.conn-row { display: grid; grid-template-columns: 1fr 260px auto auto; gap: 8px; margin-top: 12px; }
-@media (max-width: 800px) { .conn-row { grid-template-columns: 1fr; } }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bad); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); }
 .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
-<section class="card auth" id="auth-screen" hidden>
-  <h1>QuantBench Live</h1>
-  <div class="muted" style="font-size:13px">Compare full-precision and quantized code LLMs side by side. Sign in to continue.</div>
-  <label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="email">
-  <label for="auth-pass">Password</label><input id="auth-pass" type="password" autocomplete="current-password">
-  <div class="btns"><button class="primary" id="auth-signin">Sign in</button><button id="auth-signup">Create account</button><button id="auth-magic">Email me a sign-in link</button></div>
-  <div id="auth-msg" class="muted"></div>
-</section>
 <main id="app">
   <header>
     <div>
@@ -206,52 +179,9 @@ tr.expanded td { background: var(--panel-2); }
     </div>
     <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <div class="gpus" id="gpus"></div>
-      <div class="userbar" id="userbar" hidden><span id="user-email"></span><button class="small" id="sign-out">Sign out</button></div>
     </div>
   </header>
 
-  <section class="card" id="connect" hidden>
-    <div class="card-head"><div class="tag">Where your models run</div><span class="pill" id="conn-pill">not connected</span></div>
-    <div class="muted" id="conn-info" style="font-size:13px">Models run on hardware you provide: a free Google Colab GPU or your own computer, so everyone can work at the same time. Run history is shared and stays here after your session ends.</div>
-    <details id="conn-help" open style="margin-top:10px"><summary>Choose where models run</summary>
-      <div class="conn-tabs" role="tablist">
-        <button class="small" role="tab" data-where="colab" aria-selected="true">Google Colab (free GPU)</button>
-        <button class="small" role="tab" data-where="own" aria-selected="false">My own computer</button>
-      </div>
-      <div data-pane="colab">
-        <ol>
-          <li>Open a <a href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener">new Colab notebook</a> and choose <b>Runtime → Change runtime type → T4 GPU</b> (or any GPU you have).</li>
-          <li>Paste this into a cell and run it (about 2 minutes):
-            <div class="snippet"><pre class="code-view" data-snippet="colab"></pre><button class="small" data-copy="colab">Copy</button></div></li>
-          <li>Click the <b>Open QuantBench</b> link it prints. This page then connects to your Colab automatically.</li>
-        </ol>
-        <div class="conn-note">You can also download the <a href="QuantBench_Colab.ipynb" download style="color:#58a6ff">ready-made notebook</a>.
-          Free Colab has 16 GB of GPU memory: enough for about 3B models in FP16 next to their 4-bit version, or 7B in 8-bit or 4-bit.</div>
-      </div>
-      <div data-pane="own" hidden>
-        <ol>
-          <li>You need <b>Python 3.10 or newer</b>. Using a fresh virtual environment is best, because missing packages (PyTorch, transformers, the linters) are installed into it.</li>
-          <li>In a terminal, run:
-            <div class="os-label">macOS / Linux</div>
-            <div class="snippet"><pre class="code-view" data-snippet="unix"></pre><button class="small" data-copy="unix">Copy</button></div>
-            <div class="os-label">Windows (PowerShell)</div>
-            <div class="snippet"><pre class="code-view" data-snippet="windows"></pre><button class="small" data-copy="windows">Copy</button></div></li>
-          <li>Your browser opens QuantBench served from your computer (<code>http://127.0.0.1:8765</code>), already connected. Sign in there with this same account; runs go to the same shared history. Keep the terminal open; press <b>Ctrl+C</b> there to stop.</li>
-        </ol>
-        <div class="conn-note">
-          <b>What runs where:</b> with an NVIDIA GPU you get full speed and every quantization method (bitsandbytes 8-bit and 4-bit).
-          On a Mac with Apple Silicon or a laptop without a GPU, use small models (0.5B to 1.5B) with <b>optimum-quanto INT8 / INT4</b> instead; bitsandbytes needs an NVIDIA GPU.<br>
-          <b>Windows with an NVIDIA GPU:</b> install the CUDA build of PyTorch first (<a href="https://pytorch.org/get-started/locally/" target="_blank" rel="noopener" style="color:#58a6ff">pytorch.org</a>); the default Windows build uses the CPU only.<br>
-          <b>A remote GPU server</b> (for example a lab machine over SSH): leave out <code>--local</code>. It then opens a temporary public tunnel and prints a link you can open from any browser.
-        </div>
-      </div>
-    </details>
-    <div class="conn-row">
-      <input id="conn-url" placeholder="Backend URL, e.g. https://xxxx.trycloudflare.com" spellcheck="false">
-      <input id="conn-key" placeholder="Backend key" spellcheck="false">
-      <button class="primary" id="conn-go">Connect</button><button id="conn-off">Disconnect</button>
-    </div>
-  </section>
 
   <div id="live">
   <h2>1 · Load models</h2>
@@ -354,10 +284,7 @@ const gb = b => b == null ? "–" : (b / 1e9).toFixed(b >= 1e10 ? 1 : 2) + " GB"
 const fmt = (x, d = 1) => x == null || Number.isNaN(x) ? "–" : Number(x).toFixed(d);
 const mean = xs => { const v = xs.filter(x => x != null && !Number.isNaN(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
 
-const QB = window.QB_CONFIG || { mode: "local" };
-const HOSTED = QB.mode === "hosted";          // on Vercel: Supabase login + history, user-provided GPU backend
-let BACKEND = HOSTED ? null : { url: "", key: "" };
-let sb = null, me = null;                     // Supabase client and signed-in user (hosted only)
+const BACKEND = { url: "", key: "" };   // this page is served by the backend itself
 let CONFIG, STATUS = { slots: {}, gpus: [] };
 const out = {};                 // per-slot state of the current generation
 let running = false, runCtx = null;
@@ -371,7 +298,6 @@ function toast(msg) {
 }
 
 async function api(path, body, method) {
-  if (!BACKEND) throw new Error("No GPU backend connected");
   const opts = method ? { method } : body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
   if (BACKEND.key) opts.headers = { ...(opts.headers || {}), "X-QB-Key": BACKEND.key };
   const r = await fetch(BACKEND.url + path, opts);
@@ -505,13 +431,13 @@ function renderGpus() {
 
 let pollFailures = 0;
 async function poll() {
-  if (!BACKEND || !CONFIG) return;
+  if (!CONFIG) return;
   try {
     STATUS = await getJson("/api/status");
-    if (pollFailures) setConnState("connected"); pollFailures = 0;
+    pollFailures = 0;
     SLOTS.forEach(updateModelCard);
     renderGpus(); updateButtons(); renderKpis();
-  } catch (e) { if (++pollFailures === 4 && HOSTED) setConnState("lost"); }   // keep polling: Colab may come back
+  } catch (e) { pollFailures++; }   // keep polling: the server may be busy loading
 }
 
 async function loadModel(s) {
@@ -870,36 +796,9 @@ async function saveRun(opts) {
 // ------------------------------------------------------------ run history
 let groups = [], historyRows = [];
 
-// Where runs live: the local server's SQLite, or Supabase on the hosted site. Rows are per problem:
+// Where runs live: the server's SQLite. Rows are per problem:
 // {id, created, owner, mine, ...summary}; the summary is computed by the backend (/api/summarize).
-const store = HOSTED ? {
-  async rows() {
-    const all = [];
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await sb.from("runs").select("id, created_at, user_id, user_email, summary").order("id").range(from, from + 999);
-      if (error) throw error;
-      all.push(...data);
-      if (data.length < 1000) break;
-    }
-    return all.map(r => ({ id: r.id, created: r.created_at, owner: r.user_email, mine: r.user_id === me.id, ...r.summary }));
-  },
-  async get(id) {
-    const { data, error } = await sb.from("runs").select("id, created_at, user_email, record").eq("id", id).single();
-    if (error) throw error;
-    return { ...data.record, id: data.id, created: data.created_at, owner: data.user_email };
-  },
-  async save(record) {
-    const summary = await getJson("/api/summarize", record);
-    const { error } = await sb.from("runs").insert({ batch_id: record.batch_id, source: record.source, task: record.task, summary, record });
-    if (error) throw error;
-  },
-  async deleteGroup(key) {
-    const q = sb.from("runs").delete();
-    const { data, error } = await (key.startsWith("single-") ? q.eq("id", +key.slice(7)) : q.eq("batch_id", key)).select("id");
-    if (error) throw error;
-    if (!data.length) throw new Error("You can only delete runs you created");
-  },
-} : {
+const store = {
   rows: async () => (await getJson("/api/history/rows")).rows.map(r => ({ ...r, mine: true })),
   get: id => getJson(`/api/runs/${id}`),
   save: record => getJson("/api/runs", record),
@@ -985,7 +884,7 @@ function renderHistory() {
   const rows = shownGroups();
   $("#history-count").textContent = `${rows.length} run${rows.length === 1 ? "" : "s"}`;
   $("#history").innerHTML = rows.map(g => `<tr class="clickable" data-key="${esc(g.key)}" tabindex="0">
-    <td>${when(g.created)}${HOSTED ? `<div class="muted" style="font-size:11px">${esc(g.owner || "")}</div>` : ""}</td><td>${esc(g.label || "")} <span class="pill">${g.kind === "batch" ? esc(srcName(g.source)) : "single"}</span></td><td>${g.problems}</td>
+    <td>${when(g.created)}</td><td>${esc(g.label || "")} <span class="pill">${g.kind === "batch" ? esc(srcName(g.source)) : "single"}</span></td><td>${g.problems}</td>
     <td class="ca">${modelShort(g.a)}</td><td class="cb">${modelShort(g.b)}</td>
     <td>${passCell(g.a)}</td><td>${passCell(g.b)}</td>
     <td>${fmt(g.a?.pylint, 2)}</td><td>${fmt(g.b?.pylint, 2)}</td><td>${fmt(g.a?.ruff_mean, 1)}</td><td>${fmt(g.b?.ruff_mean, 1)}</td>
@@ -1134,7 +1033,7 @@ function renderReport() {
   $("#rd-body").innerHTML = `
     <div class="rd-head">
       <div style="min-width:0"><h1>${esc(g.label || "")}</h1>
-        <div class="sub">${new Date(g.created).toLocaleString()}${HOSTED && g.owner ? ` · by ${esc(g.owner)}` : ""} · ${esc(srcName(g.source))} · ${g.problems} problem${g.problems === 1 ? "" : "s"}${c.max_new_tokens ? ` · max ${c.max_new_tokens} tokens · temperature ${c.temperature} · ${c.mode}` : ""}</div></div>
+        <div class="sub">${new Date(g.created).toLocaleString()} · ${esc(srcName(g.source))} · ${g.problems} problem${g.problems === 1 ? "" : "s"}${c.max_new_tokens ? ` · max ${c.max_new_tokens} tokens · temperature ${c.temperature} · ${c.mode}` : ""}</div></div>
       <div class="btns" style="margin:0"><button class="small" data-act="csv">Export problems CSV</button>${g.mine ? `<button class="small" data-act="delete">Delete run</button>` : ""}<button class="small" data-act="close">Close ✕</button></div>
     </div>
     <section class="card"><h3 class="muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px">Overall results</h3><div class="table-wrap">${summaryTable(g)}</div></section>
@@ -1396,166 +1295,8 @@ function wireHistory() {
   $("#run-dialog").onclick = e => { if (e.target.id === "run-dialog") e.target.close(); };   // click on backdrop
 }
 
-// ---------- hosted: GPU backend connection
-function setConnState(state, detail) {
-  const pill = $("#conn-pill"), labels = { connected: "connected", connecting: "connecting…", lost: "connection lost", off: "not connected", error: "could not connect" };
-  pill.textContent = labels[state]; pill.className = "pill " + ({ connected: "ready", connecting: "loading", lost: "error", error: "error" }[state] || "");
-  if (state === "connected" && BACKEND) {
-    const local = isLocalUrl(BACKEND.url);
-    $("#conn-info").textContent = `Connected to ${local ? "your computer" : BACKEND.url.replace(/^https?:\/\//, "")} · ` +
-      (BACKEND.accelerator || STATUS.gpus.map(g => `${g.name} (${gb(g.total)})`).join(", ") || "no GPU detected") + ". Models load and run there." +
-      (BACKEND.accelerator && /^(CPU only|Apple)/.test(BACKEND.accelerator) ? " No NVIDIA GPU: use small models with optimum-quanto INT8 / INT4." : "");
-  } else if (state === "lost") {
-    $("#conn-info").textContent = "Lost contact with your backend. If your Colab session ended or you stopped connect.py, start it again and click the new link. Your saved runs are not affected.";
-  } else if (detail) $("#conn-info").textContent = detail;
-  $("#conn-help").open = state !== "connected";
-  $("#live").hidden = !CONFIG;
-}
-
-async function connectBackend(url, key, quiet) {
-  url = (url || "").trim().replace(/\/+$/, ""); key = (key || "").trim();
-  if (!url) return;
-  if (!/^https?:\/\//.test(url)) url = (isLocalUrl("http://" + url) ? "http://" : "https://") + url;
-  setConnState("connecting");
-  const prev = BACKEND;
-  BACKEND = { url, key };
-  try {
-    const h = await (await fetch(url + "/api/health")).json();
-    if (h.app !== "quantbench") throw new Error("That URL is not a QuantBench backend");
-    await getJson("/api/status");   // checks the key
-    BACKEND.accelerator = h.accelerator;
-  } catch (e) {
-    BACKEND = prev;
-    const why = e.message !== "Failed to fetch" ? e.message
-      : isLocalUrl(url) ? "nothing answered on your computer, or the browser blocked it. Is connect.py still running? Open the http://127.0.0.1 link it printed instead of this page."
-      : "the backend is not reachable (is the Colab cell or connect.py still running?)";
-    setConnState(prev ? "connected" : "error", `Could not connect to ${url}: ${why}`);
-    if (!quiet) toast("Could not connect: " + e.message);
-    return false;
-  }
-  try { localStorage.setItem("qb.backend", JSON.stringify({ url, key })); } catch {}
-  $("#conn-url").value = url; $("#conn-key").value = key;
-  await buildLive();
-  setConnState("connected");
-  return true;
-}
-
-function disconnectBackend() {
-  BACKEND = null; CONFIG = null; STATUS = { slots: {}, gpus: [] };
-  try { localStorage.removeItem("qb.backend"); } catch {}
-  $("#gpus").innerHTML = "";
-  setConnState("off", "Disconnected. Your saved runs are still below.");
-}
-
-const isLocalUrl = url => /^http:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(url);
-
-function showWhere(where) {
-  document.querySelectorAll("#connect [data-where]").forEach(b => b.setAttribute("aria-selected", b.dataset.where === where));
-  document.querySelectorAll("#connect [data-pane]").forEach(p => (p.hidden = p.dataset.pane !== where));
-  try { localStorage.setItem("qb.where", where); } catch {}
-}
-
-function takeBackendFromLink() {
-  // Links printed by connect.py look like https://site/#backend=<url>&key=<key>. The fragment never reaches a server.
-  const p = new URLSearchParams(location.hash.slice(1));
-  if (p.get("backend")) {
-    try { localStorage.setItem("qb.backend", JSON.stringify({ url: p.get("backend"), key: p.get("key") || "" })); } catch {}
-    history.replaceState(null, "", location.pathname + location.search);
-  }
-}
-
-function savedBackend() {
-  try { return JSON.parse(localStorage.getItem("qb.backend") || "null"); } catch { return null; }
-}
-
-// ---------- hosted: sign-in (Supabase Auth)
-function loadScript(src) {
-  return new Promise((res, rej) => { const el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = () => rej(new Error("Could not load " + src)); document.head.appendChild(el); });
-}
-
-function authMsg(text, isError) { const el = $("#auth-msg"); el.textContent = text; el.style.color = isError ? "var(--bad)" : "var(--muted)"; }
-
-async function authAction(kind) {
-  const email = $("#auth-email").value.trim(), password = $("#auth-pass").value;
-  if (!email) return authMsg("Enter your email", true);
-  authMsg("…");
-  let res;
-  if (kind === "magic") res = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
-  else if (!password) return authMsg("Enter a password (or use the email link)", true);
-  else if (kind === "signup") res = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
-  else res = await sb.auth.signInWithPassword({ email, password });
-  if (res.error) return authMsg(res.error.message, true);
-  if (kind === "magic") return authMsg("Check your inbox (and spam folder) for a sign-in link. Open it in this same browser; it works once, for one hour.");
-  if (kind === "signup" && !res.data.session) return authMsg("Account created. Confirm it from the email we sent, then sign in.");
-}
-
-async function onSignedIn(user) {
-  if (me && me.id === user.id) return;
-  me = user;
-  const { data: allowed, error } = await sb.rpc("is_allowed");
-  if (error || !allowed) {
-    $("#app").hidden = true; $("#auth-screen").hidden = false;
-    authMsg(error ? "Could not check access: " + error.message : `Signed in as ${user.email}, but this account has not been approved yet. Ask the site owner to add it.`, true);
-    me = null;
-    return;
-  }
-  $("#auth-screen").hidden = true; $("#app").hidden = false;
-  $("#userbar").hidden = false; $("#user-email").textContent = user.email;
-  $("#history-filter").insertAdjacentHTML("beforeend", `<option value="mine">My runs</option>`);
-  loadHistory();
-  const saved = savedBackend();
-  if (saved) { $("#conn-url").value = saved.url; $("#conn-key").value = saved.key; await connectBackend(saved.url, saved.key, true); }
-  else setConnState("off");
-}
-
-
-// A sign-in link that failed (expired, already used, or not allowed) comes back as
-// #error=...&error_description=... ; show that instead of a silent sign-in screen.
-function linkError() {
-  const p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
-  const msg = p.get("error_description") || p.get("error");
-  if (!msg) return null;
-  history.replaceState(null, "", location.pathname);
-  const code = p.get("error_code") || "";
-  return code === "otp_expired" ? "That sign-in link has expired or was already used. Request a new one (links work once, for one hour)."
-    : `Sign-in link failed: ${msg.replace(/\+/g, " ")}`;
-}
-
-async function initHosted() {
-  const failedLink = linkError();
-  takeBackendFromLink();
-  $("#app").hidden = true; $("#connect").hidden = false; $("#live").hidden = true;
-  const site = QB.site || location.origin, snippets = {
-    colab: `!curl -fsSL ${site}/backend.tar.gz | tar xz -C /content\n%run /content/quantbench/connect.py --site ${site}`,
-    unix: `curl -fsSL ${site}/backend.tar.gz | tar xz\npython3 quantbench/connect.py --site ${site} --local`,
-    windows: `curl.exe -fsSLo quantbench.tar.gz ${site}/backend.tar.gz; tar -xzf quantbench.tar.gz\npython quantbench\\connect.py --site ${site} --local`,
-  };
-  Object.entries(snippets).forEach(([k, text]) => {
-    $(`#connect [data-snippet="${k}"]`).textContent = text;
-    $(`#connect [data-copy="${k}"]`).onclick = () => navigator.clipboard.writeText(text).then(() => toast("Copied"), () => toast("Copy failed, select the text instead"));
-  });
-  document.querySelectorAll("#connect [data-where]").forEach(b => (b.onclick = () => showWhere(b.dataset.where)));
-  let where = null;
-  try { where = localStorage.getItem("qb.where"); } catch {}
-  if (where) showWhere(where);
-  $("#conn-go").onclick = () => connectBackend($("#conn-url").value, $("#conn-key").value);
-  $("#conn-off").onclick = disconnectBackend;
-  await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js");
-  sb = window.supabase.createClient(QB.supabaseUrl, QB.supabaseAnonKey);
-  $("#auth-signin").onclick = () => authAction("signin");
-  $("#auth-signup").onclick = () => authAction("signup");
-  $("#auth-magic").onclick = () => authAction("magic");
-  $("#auth-pass").addEventListener("keydown", e => { if (e.key === "Enter") authAction("signin"); });
-  $("#sign-out").onclick = async () => { await sb.auth.signOut(); location.reload(); };
-  sb.auth.onAuthStateChange((_event, session) => { if (session?.user) setTimeout(() => onSignedIn(session.user)); });
-  const { data } = await sb.auth.getSession();
-  if (data.session?.user) await onSignedIn(data.session.user);
-  else { $("#auth-screen").hidden = false; if (failedLink) authMsg(failedLink, true); }
-}
-
 async function init() {
   wireHistory();
-  if (HOSTED) return initHosted();
   await buildLive();
   loadHistory();
 }

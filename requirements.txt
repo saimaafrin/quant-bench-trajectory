@@ -1,0 +1,23 @@
+# QuantBench: the server and both pages. Install PyTorch first (CPU build on a machine without an NVIDIA GPU:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# the default `pip install torch` pulls the CUDA build, several GB), then `pip install -r requirements.txt`.
+transformers>=4.45
+accelerate
+optimum-quanto          # INT8 / INT4 weight quantization that also runs on CPUs and Apple GPUs
+huggingface_hub
+fastapi
+uvicorn
+pydantic
+pandas
+pyarrow                 # HumanEval / BigCodeBench / ToolHop are parquet datasets on the Hub
+ruff
+pylint
+radon
+bandit
+# the agent page: BFCL's math tools, and the modules ToolHop's tool functions import
+mpmath
+pytz
+python-dateutil
+babel
+dicttoxml
+# bitsandbytes (bnb-8bit / bnb-4bit) only on an NVIDIA GPU:  pip install bitsandbytes

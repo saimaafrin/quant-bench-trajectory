@@ -29,7 +29,7 @@ from pathlib import Path
 import torch
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from huggingface_hub import HfApi, snapshot_download
 from huggingface_hub.constants import HF_HUB_CACHE
@@ -585,16 +585,9 @@ def create_app(args) -> FastAPI:
                     return JSONResponse({"detail": "Missing or wrong backend key"}, status_code=401)
             return await call_next(request)
 
-    # Added after the key check so it wraps it: rejected requests still carry CORS headers.
-    app.add_middleware(CORSMiddleware, allow_origins=args.cors_origins.split(","), allow_methods=["*"], allow_headers=["*"])
-
-    @app.middleware("http")
-    async def private_network_access(request: Request, call_next):
-        # Chrome asks before a public https site may call http://127.0.0.1 (the "own computer" setup); say yes.
-        response = await call_next(request)
-        if request.headers.get("access-control-request-private-network"):
-            response.headers["Access-Control-Allow-Private-Network"] = "true"
-        return response
+    if args.cors_origins:
+        # Only for a page served from somewhere else (not the default: the pages come from this server).
+        app.add_middleware(CORSMiddleware, allow_origins=args.cors_origins.split(","), allow_methods=["*"], allow_headers=["*"])
 
     def get_slot(name: str) -> Slot:
         if name not in slots:
@@ -604,14 +597,6 @@ def create_app(args) -> FastAPI:
     @app.get("/")
     def index():
         return FileResponse(ROOT / "static" / "index.html")
-
-    site_config = Path(args.site_config).read_text() if args.site_config else '{"mode": "local"}'
-
-    @app.get("/config.js")
-    def config_js():
-        # Standalone: no login, history in SQLite. With --site-config (connect.py --local) this server
-        # serves the hosted site's page itself, signed in to the shared history, with no cross-site calls.
-        return Response(f"window.QB_CONFIG = {site_config};", media_type="application/javascript")
 
     @app.get("/api/health")
     def health():
@@ -740,7 +725,7 @@ def create_app(args) -> FastAPI:
     def summarize_run(record: dict):
         return summarize(record)
 
-    # Local history (SQLite). The hosted site stores runs in Supabase instead.
+    # Run history (SQLite).
     @app.get("/api/history/rows")
     def history_rows():
         return {"rows": store.rows()}
@@ -884,10 +869,9 @@ def main():
     p.add_argument("--db", default=str(ROOT / "runs" / "history.sqlite"), help="Where run history is stored")
     p.add_argument("--auth-key", default=os.environ.get("QB_AUTH_KEY"),
                    help="Require this key (X-QB-Key header) on every API call; set when the server is reachable from outside")
-    p.add_argument("--cors-origins", default="*", help="Comma-separated origins allowed to call the API from a browser")
+    p.add_argument("--cors-origins", default="", help="Comma-separated origins allowed to call the API from another site (default: none)")
     p.add_argument("--max-download-gb", type=float, default=0, help="Refuse models whose files exceed this size (0 = no limit)")
     p.add_argument("--bench-timeout", type=int, default=60, help="Seconds allowed for a BigCodeBench test suite")
-    p.add_argument("--site-config", default=None, help="JSON file with the hosted site's config (set by connect.py --local)")
     args = p.parse_args()
     LIMITS["max_download_bytes"] = args.max_download_gb * 1e9 or None
 
